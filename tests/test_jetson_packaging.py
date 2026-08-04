@@ -10,6 +10,7 @@ def test_jetson_installer_pins_xavier_runtime() -> None:
     assert "horde_sdk~=0.17.1" in requirements
     assert "horde_safety~=0.3.0" in requirements
     assert "horde_model_reference~=0.9.2" in requirements
+    assert "mediapipe==0.10.18" in requirements
     assert "onnxruntime==1.17.3" in requirements
     requirement_names = {
         line.split("==", 1)[0].split("~=", 1)[0].split(">=", 1)[0].lower()
@@ -28,6 +29,9 @@ def test_jetson_installer_pins_xavier_runtime() -> None:
     assert "a0555b474696257a2374f4d1d4bc10b3d3fae5e3" in installer
     assert "CMAKE_BUILD_PARALLEL_LEVEL=1" in installer
     assert "MAX_JOBS=1" in installer
+    assert '"$python" -m pip check' in installer
+    assert "No broken requirements found." in installer
+    assert "mediapipe==0.10.21, but you have mediapipe 0.10.18" in installer
     assert 'metadata.version("horde-worker-regen") == "10.1.2"' in installer
 
 

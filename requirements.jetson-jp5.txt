@@ -2,6 +2,8 @@
 # Tazlin horde-engine source are installed separately with --no-deps.
 numpy==1.26.4
 qrcode==7.4.2
+# 0.10.21 does not publish a Python 3.10 aarch64 wheel; 0.10.18 is the
+# newest release available for Xavier's interpreter and architecture.
 mediapipe==0.10.18
 onnxruntime==1.17.3
 protobuf<5
