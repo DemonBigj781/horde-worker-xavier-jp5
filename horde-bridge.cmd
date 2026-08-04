@@ -12,7 +12,6 @@ call runtime python -s -c "import torch"
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ERROR: Environment not set up. Please run update-runtime.cmd first.
-    echo        Or use horde-worker.cmd which handles setup automatically.
     GOTO END
 )
 

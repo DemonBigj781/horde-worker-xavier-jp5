@@ -37,7 +37,6 @@ dependencies = [
     "StrEnum",
     "loguru",
     "babel",
-    "textual>=2.1.0",
 ]
 
 [project.optional-dependencies]
@@ -63,7 +62,6 @@ cpu = [
 [project.scripts]
 run_worker = "horde_worker_regen.run_worker:start"
 download_models = "horde_worker_regen.download_models:main"
-horde-worker = "horde_worker_regen.tui.app:main"
 
 [dependency-groups]
 dev = [

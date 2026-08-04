@@ -103,20 +103,7 @@ SETUPTOOLS_SCM_PRETEND_VERSION_FOR_HORDE_ENGINE=2.20.12 \
 "$python" -m pip install --no-deps "$xformers_wheel"
 "$python" -m pip install --no-deps -e "$script_dir"
 
-# The worker metadata follows modern Torch and MediaPipe pins. JetPack 5 must
-# retain NVIDIA's CUDA 11.4 build and the newest Python 3.10 aarch64 MediaPipe
-# wheel, but no other dependency mismatch is allowed.
-pip_check_output=$("$python" -m pip check 2>&1 || true)
-unexpected_pip_check_output=$(
-	printf '%s\n' "$pip_check_output" | grep -Fv \
-		-e "No broken requirements found." \
-		-e "horde-worker-regen 10.1.2 has requirement mediapipe==0.10.21, but you have mediapipe 0.10.18." \
-		-e "horde-worker-regen 10.1.2 has requirement torch==2.9.1, but you have torch 2.1.0a0+git7bcf7da." || true
-)
-if test -n "$unexpected_pip_check_output"; then
-	printf '%s\n' "$pip_check_output" >&2
-	exit 1
-fi
+"$python" -m pip check
 
 "$python" -s - <<'PY'
 import importlib.metadata as metadata

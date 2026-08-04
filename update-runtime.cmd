@@ -57,6 +57,5 @@ echo.
 echo Next steps:
 echo   1. Edit bridgeData.yaml with your API key and worker name
 echo   2. Run horde-bridge.cmd to start the worker
-echo      (or horde-worker.cmd for the interactive launcher)
 echo.
 pause

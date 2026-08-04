@@ -32,31 +32,19 @@ cd horde-worker-reGen
 Download the [latest zip](https://github.com/Haidra-Org/horde-worker-reGen/archive/refs/heads/main.zip), extract it, and open a terminal in the extracted folder.
 </details>
 
-### 2. Launch the interactive setup
+### 2. Configure and launch
 
-Double-click (or run) the launcher for your OS:
+This compatibility milestone provides the command-line launchers. The
+interactive terminal UI will be restored in a later upgrade milestone.
 
-| OS | Launcher |
-|----|----------|
-| Windows | `horde-worker.cmd` |
-| Linux | `./horde-worker.sh` |
-
-The launcher automatically installs dependencies on first run (no separate install step needed), then opens an **interactive terminal UI** that walks you through:
-
-1. Entering your API key and choosing a worker name
-2. Selecting your GPU type
-3. Downloading AI models
-4. Starting the worker
+1. **Install dependencies**: run `update-runtime.cmd` (Windows) or
+   `./update-runtime.sh` (Linux).
+2. **Edit config**: copy `bridgeData_template.yaml` to `bridgeData.yaml` and
+   fill in your API key and worker name.
+3. **Start the worker**: run `horde-bridge.cmd` (Windows) or
+   `./horde-bridge.sh` (Linux).
 
 That's it — you're contributing to the horde!
-
-### Alternative: command-line scripts
-
-If you prefer non-interactive scripts:
-
-1. **Install dependencies**: run `update-runtime.cmd` (Windows) or `./update-runtime.sh` (Linux).
-2. **Edit config**: copy `bridgeData_template.yaml` to `bridgeData.yaml` and fill in your API key and worker name.
-3. **Start the worker**: run `horde-bridge.cmd` (Windows) or `./horde-bridge.sh` (Linux).
 
 ## Contents
 
@@ -73,9 +61,7 @@ If you prefer non-interactive scripts:
 
 ### Basic Settings
 
-If you used the interactive launcher, your config was created automatically. To edit it later, open `bridgeData.yaml` in any text editor.
-
-If you're setting up manually:
+To configure the worker:
 
 1. Copy `bridgeData_template.yaml` to `bridgeData.yaml`.
 2. Set your `api_key` (from [aihorde.net/register](https://aihorde.net/register)). **Keep this secret.**
@@ -158,7 +144,7 @@ Minimize other VRAM-consuming apps while the worker runs.
 
 ### NVIDIA (default)
 
-No extra steps. The standard scripts and the interactive launcher default to CUDA.
+No extra steps. The standard scripts default to CUDA.
 
 ### JetPack 5 / Jetson AGX Xavier
 
@@ -198,9 +184,8 @@ DirectML is **several times slower** than CUDA or ROCm. Use only if you have no 
 
 > The worker is resource-intensive. Avoid gaming or other heavy tasks while it runs.
 
-**Recommended**: use `horde-worker.cmd` / `./horde-worker.sh` for the interactive launcher.
-
-**Alternative**: use `horde-bridge.cmd` / `./horde-bridge.sh` (or the `-rocm` / `-directml` variants).
+Use `horde-bridge.cmd` / `./horde-bridge.sh` (or the `-rocm` / `-directml`
+variants).
 
 ### Stopping
 
@@ -238,7 +223,8 @@ Stay up to date via our [Discord](https://discord.gg/3DxrhksKzn). Script names b
 2. **Pull updates**:
    - Git users: `git pull`
    - Zip users: download the [latest zip](https://github.com/db0/horde-worker-reGen/archive/refs/heads/main.zip), extract over the existing folder.
-3. **Update dependencies**: The interactive launcher handles this for you. You can also run `update-runtime.cmd` (or the relevant variant) to update manually.
+3. **Update dependencies**: run `update-runtime.cmd`, `./update-runtime.sh`,
+   or the relevant GPU-specific variant.
 4. **Start** the worker again.
 
 > **Antivirus note**: Some antivirus (e.g. Avast) may interfere with downloads. If you see `CRYPT_E_NO_REVOCATION_CHECK` errors, temporarily disable it.

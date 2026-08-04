@@ -3,6 +3,24 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 
 
+def test_incremental_uv_migration_does_not_publish_missing_tui() -> None:
+    pyproject = (ROOT / "pyproject.toml").read_text()
+    readme = (ROOT / "README.md").read_text()
+    helper_scripts = "\n".join(
+        (ROOT / path).read_text() for path in ("horde-bridge.cmd", "update-runtime.cmd", "update-runtime.sh")
+    )
+
+    assert not (ROOT / "horde_worker_regen" / "tui").exists()
+    assert 'horde-worker = "horde_worker_regen.tui.app:main"' not in pyproject
+    assert '"textual>=2.1.0"' not in pyproject
+    assert "horde-worker.cmd" not in readme
+    assert "horde-worker.sh" not in readme
+    assert "horde-worker.cmd" not in helper_scripts
+    assert "horde-worker.sh" not in helper_scripts
+    assert "horde-bridge.cmd" in readme
+    assert "horde-bridge.sh" in readme
+
+
 def test_jetson_installer_pins_xavier_runtime() -> None:
     requirements = (ROOT / "requirements.jetson-jp5.txt").read_text()
     installer = (ROOT / "install-jetson-jp5.sh").read_text()
@@ -29,9 +47,10 @@ def test_jetson_installer_pins_xavier_runtime() -> None:
     assert "a0555b474696257a2374f4d1d4bc10b3d3fae5e3" in installer
     assert "CMAKE_BUILD_PARALLEL_LEVEL=1" in installer
     assert "MAX_JOBS=1" in installer
-    assert '"$python" -m pip check' in installer
-    assert "No broken requirements found." in installer
-    assert "mediapipe==0.10.21, but you have mediapipe 0.10.18" in installer
+    assert '\n"$python" -m pip check\n' in installer
+    assert "pip_check_output" not in installer
+    assert "mediapipe==0.10.21, but you have mediapipe 0.10.18" not in installer
+    assert "torch==2.9.1, but you have torch 2.1.0a0+git7bcf7da" not in installer
     assert 'metadata.version("horde-worker-regen") == "10.1.2"' in installer
 
 
