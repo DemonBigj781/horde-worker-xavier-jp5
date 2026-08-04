@@ -285,6 +285,14 @@ class reGenBridgeData(CombinedHordeBridgeData):
     def load_env_vars(self) -> None:
         """Load the environment variables into the config model."""
         # See load_env_vars.py's `def load_env_vars(self) -> None:`
+        api_key = os.getenv("AIWORKER_API_KEY")
+        if api_key:
+            self.api_key = type(self).model_validate({"api_key": api_key}).api_key
+
+        civitai_api_token = os.getenv("AIWORKER_CIVITAI_API_TOKEN")
+        if civitai_api_token:
+            self.CIVIT_API_TOKEN = civitai_api_token
+
         if self.models_folder_parent and os.getenv("AIWORKER_CACHE_HOME") is None:
             os.environ["AIWORKER_CACHE_HOME"] = self.models_folder_parent
         if self.horde_url:

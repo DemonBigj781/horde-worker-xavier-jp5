@@ -94,6 +94,43 @@ def test_bridge_data_load_from_env_vars() -> None:
     assert bridge_data._loaded_from_env_vars is True
 
 
+def test_bridge_data_loads_api_key_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Allow deployments to keep the AI Horde key out of bridgeData.yaml."""
+    api_key = "a" * 22
+    monkeypatch.setenv("AIWORKER_API_KEY", api_key)
+
+    bridge_data = reGenBridgeData.model_validate({})
+    bridge_data.load_env_vars()
+
+    assert bridge_data.api_key == api_key
+
+
+def test_bridge_data_loads_civitai_token_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Map the deployment-facing CivitAI variable to the engine variable."""
+    monkeypatch.delenv("CIVIT_API_TOKEN", raising=False)
+    monkeypatch.setenv("AIWORKER_CIVITAI_API_TOKEN", "test-token")
+
+    bridge_data = reGenBridgeData.model_validate({})
+    bridge_data.load_env_vars()
+
+    assert bridge_data.CIVIT_API_TOKEN == "test-token"
+    assert __import__("os").environ["CIVIT_API_TOKEN"] == "test-token"
+
+
+def test_extra_slow_worker_preserves_explicitly_disabled_post_process_overlap() -> None:
+    """Unified-memory workers can extend deadlines without overlapping heavy jobs."""
+    bridge_data = reGenBridgeData.model_validate(
+        {
+            "extra_slow_worker": True,
+            "post_process_job_overlap": False,
+        },
+    )
+
+    assert bridge_data.extra_slow_worker is True
+    assert bridge_data.post_process_job_overlap is False
+    assert bridge_data.preload_timeout >= 120
+
+
 def test_bridge_data_to_dot_env_file() -> None:
     """Test that the bridge data can be written to a .env file."""
     bridge_data = reGenBridgeData.model_validate({})
