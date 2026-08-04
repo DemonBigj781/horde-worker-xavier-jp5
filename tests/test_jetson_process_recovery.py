@@ -237,13 +237,13 @@ def test_safety_child_reports_busy_before_starting_evaluation() -> None:
     ]
 
 
-def test_extra_slow_worker_uses_longer_r2_upload_timeout() -> None:
-    """Slow Jetson workers have enough time to upload generated images to R2."""
+def test_r2_upload_timeout_is_independent_of_slow_worker_flag() -> None:
+    """Xavier can keep a long upload deadline without advertising as an extra-slow worker."""
     manager = object.__new__(HordeWorkerProcessManager)
-    manager.bridge_data = Mock(extra_slow_worker=True)
+    manager.bridge_data = Mock(extra_slow_worker=False, r2_upload_timeout=60)
 
     assert manager.get_r2_upload_timeout_seconds() == 60
 
-    manager.bridge_data.extra_slow_worker = False
+    manager.bridge_data.extra_slow_worker = True
 
-    assert manager.get_r2_upload_timeout_seconds() == 10
+    assert manager.get_r2_upload_timeout_seconds() == 60

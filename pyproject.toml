@@ -37,6 +37,7 @@ dependencies = [
     "StrEnum",
     "loguru",
     "babel",
+    "textual==8.1.1",
 ]
 
 [project.optional-dependencies]
@@ -54,13 +55,13 @@ directml = [
 cpu = [
     "torch==2.9.1",
 ]
-
 [project.urls]
 "Homepage" = "https://github.com/Haidra-Org/AI-Horde-Worker"
 "Bug Tracker" = "https://github.com/Haidra-Org/AI-Horde-Worker"
 
 [project.scripts]
-run_worker = "horde_worker_regen.run_worker:start"
+run_worker = "horde_worker_regen.run_worker:init"
+horde-worker = "horde_worker_regen.tui.app:main"
 download_models = "horde_worker_regen.download_models:main"
 
 [dependency-groups]

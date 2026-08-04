@@ -16,8 +16,6 @@ if test -f "$script_dir/.env"; then
 fi
 
 export CUDA_VISIBLE_DEVICES=0
-# Keep large contiguous CUDA allocations from being split too aggressively.
-export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
 # Expose a channels-last preference to worker components that honor it.
 export PYTORCH_CHANNELS_LAST=1
 # Avoid ARM64 startup stalls from PyTorch JIT compilation.

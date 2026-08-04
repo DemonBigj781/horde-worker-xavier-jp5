@@ -13,6 +13,7 @@ def start_working(
     *,
     amd_gpu: bool = False,
     directml: int | None = None,
+    use_tui: bool = False,
 ) -> None:
     """Create and start process manager."""
     process_manager = HordeWorkerProcessManager(
@@ -22,5 +23,13 @@ def start_working(
         amd_gpu=amd_gpu,
         directml=directml,
     )
+
+    if use_tui:
+        try:
+            from horde_worker_regen.tui import run_tui
+        except ImportError as exc:
+            raise RuntimeError("TUI mode requires Textual. Reinstall the worker dependencies.") from exc
+        run_tui(process_manager)
+        return
 
     process_manager.start()

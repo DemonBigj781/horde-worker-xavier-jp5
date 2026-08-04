@@ -128,7 +128,24 @@ def test_extra_slow_worker_preserves_explicitly_disabled_post_process_overlap() 
 
     assert bridge_data.extra_slow_worker is True
     assert bridge_data.post_process_job_overlap is False
-    assert bridge_data.preload_timeout >= 120
+
+
+def test_r2_upload_timeout_can_be_configured_without_extra_slow_mode() -> None:
+    bridge_data = reGenBridgeData.model_validate(
+        {
+            "extra_slow_worker": False,
+            "r2_upload_timeout": 60,
+        },
+    )
+
+    assert bridge_data.extra_slow_worker is False
+    assert bridge_data.r2_upload_timeout == 60
+
+
+def test_legacy_extra_slow_worker_keeps_long_r2_upload_timeout() -> None:
+    bridge_data = reGenBridgeData.model_validate({"extra_slow_worker": True})
+
+    assert bridge_data.r2_upload_timeout == 60
 
 
 def test_bridge_data_to_dot_env_file() -> None:

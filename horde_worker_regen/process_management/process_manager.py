@@ -90,6 +90,7 @@ from horde_worker_regen.process_management.messages import (
     ModelLoadState,
 )
 from horde_worker_regen.process_management.worker_entry_points import start_inference_process, start_safety_process
+from horde_worker_regen.system_resources import SystemResourceReader, SystemResourceSnapshot
 
 sslcontext = ssl.create_default_context(cafile=certifi.where())
 
@@ -2981,9 +2982,7 @@ class HordeWorkerProcessManager:
 
     def get_r2_upload_timeout_seconds(self) -> int:
         """Return the R2 upload timeout appropriate for this worker profile."""
-        if self.bridge_data.extra_slow_worker:
-            return 60
-        return 10
+        return self.bridge_data.r2_upload_timeout
 
     @logger.catch(reraise=True)
     async def submit_single_generation(self, new_submit: PendingSubmitJob) -> PendingSubmitJob:
@@ -4666,6 +4665,18 @@ class HordeWorkerProcessManager:
             logger.debug("Deadlock was likely false-alarm.")
             self._in_deadlock = False
 
+    def get_system_resource_snapshot(self) -> SystemResourceSnapshot:
+        """Return a shared system-resource sample for console and TUI reporting."""
+        reader = getattr(self, "_system_resource_reader", None)
+        if reader is None:
+            reader = SystemResourceReader()
+            self._system_resource_reader = reader
+        return reader.snapshot()
+
+    def get_system_resource_status_line(self) -> str:
+        """Return a compact system-resource status line."""
+        return self.get_system_resource_snapshot().format_console()
+
     def print_status_method(self) -> None:
         """Print the status of the worker if it's time to do so."""
         if self._last_pop_maintenance_mode:
@@ -4764,6 +4775,7 @@ class HordeWorkerProcessManager:
                     ],
                 ),
             )
+            logger.info(f"  System resources: {self.get_system_resource_status_line()}")
             logger.info(
                 "  "
                 + " | ".join(
@@ -5001,12 +5013,17 @@ class HordeWorkerProcessManager:
     _caught_sigints = 0
     """The number of SIGINTs or SIGTERMs caught."""
 
-    def start(self) -> None:
-        """Start the process manager."""
+    async def run(self) -> None:
+        """Run the process manager in the current event loop."""
         import signal
 
         signal.signal(signal.SIGINT, self.signal_handler)
-        asyncio.run(self._main_loop())
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        await self._main_loop()
+
+    def start(self) -> None:
+        """Start the process manager in a new event loop."""
+        asyncio.run(self.run())
 
     def signal_handler(self, sig: int, frame: object) -> None:
         """Handle SIGINT and SIGTERM."""

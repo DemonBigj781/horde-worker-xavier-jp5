@@ -187,6 +187,16 @@ DirectML is **several times slower** than CUDA or ROCm. Use only if you have no 
 Use `horde-bridge.cmd` / `./horde-bridge.sh` (or the `-rocm` / `-directml`
 variants).
 
+### Terminal Dashboard
+
+Launch `horde-worker`, or pass `--tui` to `run_worker`. The dashboard shows
+worker identity, process states, job queues, session counters, recent logs, and
+the same RAM, swap, worker-process memory, load, GPU clock, temperature, and fan
+sample written to periodic console status messages.
+
+Use the dashboard in a real terminal such as SSH, screen, or tmux. Automated
+service launches should continue using the normal headless command.
+
 ### Stopping
 
 Press `Ctrl+C` in the worker's terminal. It will finish any in-progress jobs before exiting.

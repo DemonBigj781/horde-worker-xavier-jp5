@@ -199,6 +199,10 @@ max_lora_cache_size: 10
 extra_slow_worker: false
 # Low-end cards or low performance: true
 
+# Maximum seconds allowed for uploading one generated image to R2.
+# Increase this independently when upload latency is high; it does not mark the worker as extra slow.
+r2_upload_timeout: 10
+
 # Only pick up jobs requesting steps lower than the model's average steps.
 # Useful for slower workers or if you don't want to serve requests with an extraordinary number of steps.
 limit_max_steps: false

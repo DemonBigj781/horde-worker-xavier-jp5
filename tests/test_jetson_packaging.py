@@ -3,22 +3,15 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 
 
-def test_incremental_uv_migration_does_not_publish_missing_tui() -> None:
+def test_tui_is_packaged_for_console_and_jetson() -> None:
     pyproject = (ROOT / "pyproject.toml").read_text()
-    readme = (ROOT / "README.md").read_text()
-    helper_scripts = "\n".join(
-        (ROOT / path).read_text() for path in ("horde-bridge.cmd", "update-runtime.cmd", "update-runtime.sh")
-    )
+    requirements = (ROOT / "requirements.jetson-jp5.txt").read_text()
 
-    assert not (ROOT / "horde_worker_regen" / "tui").exists()
-    assert 'horde-worker = "horde_worker_regen.tui.app:main"' not in pyproject
-    assert '"textual>=2.1.0"' not in pyproject
-    assert "horde-worker.cmd" not in readme
-    assert "horde-worker.sh" not in readme
-    assert "horde-worker.cmd" not in helper_scripts
-    assert "horde-worker.sh" not in helper_scripts
-    assert "horde-bridge.cmd" in readme
-    assert "horde-bridge.sh" in readme
+    assert (ROOT / "horde_worker_regen" / "tui" / "app.py").exists()
+    assert 'run_worker = "horde_worker_regen.run_worker:init"' in pyproject
+    assert 'horde-worker = "horde_worker_regen.tui.app:main"' in pyproject
+    assert '"textual==8.1.1",' in pyproject
+    assert "textual==8.1.1" in requirements
 
 
 def test_jetson_installer_pins_xavier_runtime() -> None:
@@ -75,7 +68,7 @@ def test_jetson_launcher_uses_bounded_cpu_threads() -> None:
 
     assert "getconf _NPROCESSORS_CONF" in launcher
     assert "compute_threads=$((configured_cpus / 2))" in launcher
-    assert "PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128" in launcher
+    assert "PYTORCH_CUDA_ALLOC_CONF" not in launcher
     assert "PYTORCH_CHANNELS_LAST=1" in launcher
     assert "PYTORCH_JIT=0" in launcher
     assert "LD_PRELOAD" in launcher

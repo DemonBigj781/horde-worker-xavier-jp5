@@ -113,6 +113,7 @@ import horde_safety
 import horde_sdk
 import hordelib
 import torch
+import textual
 import xformers
 
 assert torch.__version__ == "2.1.0a0+git7bcf7da", torch.__version__
@@ -122,11 +123,13 @@ assert torch.cuda.get_device_capability(0) == (7, 2)
 assert xformers._has_cpp_library, "xFormers CUDA extension is unavailable"
 assert metadata.version("horde-worker-regen") == "10.1.2"
 assert metadata.version("horde-engine") == "2.20.12"
+assert metadata.version("textual") == "8.1.1"
 print("torch", torch.__version__)
 print("cuda", torch.version.cuda)
 print("device", torch.cuda.get_device_name(0))
 print("xformers", metadata.version("xformers"))
 print("worker", metadata.version("horde-worker-regen"))
 print("engine", metadata.version("horde-engine"))
+print("textual", metadata.version("textual"))
 print("horde imports", hordelib.__name__, horde_sdk.__name__, horde_safety.__name__, horde_model_reference.__name__)
 PY

@@ -55,6 +55,9 @@ class reGenBridgeData(CombinedHordeBridgeData):
 
     post_process_timeout: int = Field(default=60, ge=15)
 
+    r2_upload_timeout: int = Field(default=10, ge=10, le=300)
+    """Maximum seconds allowed for uploading one generation to R2."""
+
     download_timeout: int = Field(default=TOTAL_LORA_DOWNLOAD_TIMEOUT + 1)
     """The maximum amount of time to allow an aux model to download before it is killed"""
     preload_timeout: int = Field(default=80, ge=15)
@@ -155,6 +158,8 @@ class reGenBridgeData(CombinedHordeBridgeData):
             self.process_timeout = default_process_timeout // 2
 
         if self.extra_slow_worker:
+            if "r2_upload_timeout" not in self.model_fields_set:
+                self.r2_upload_timeout = 60
             if self.high_performance_mode:
                 self.high_performance_mode = False
                 logger.warning(
