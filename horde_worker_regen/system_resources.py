@@ -90,6 +90,10 @@ class SystemResourceReader:
                 continue
         return values
 
+    def available_ram_bytes(self) -> int | None:
+        """Return Linux MemAvailable without scanning the worker process tree."""
+        return self._read_meminfo().get("MemAvailable")
+
     def _read_load_average(self) -> tuple[float, float, float]:
         try:
             values = self._path("/proc/loadavg").read_text().split()[:3]

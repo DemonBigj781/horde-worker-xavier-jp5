@@ -58,6 +58,9 @@ class reGenBridgeData(CombinedHordeBridgeData):
     r2_upload_timeout: int = Field(default=10, ge=10, le=300)
     """Maximum seconds allowed for uploading one generation to R2."""
 
+    minimum_available_ram_gib: float = Field(default=0, ge=0, le=128)
+    """Pause new job pops while system-available RAM is below this reserve. Zero disables the guard."""
+
     download_timeout: int = Field(default=TOTAL_LORA_DOWNLOAD_TIMEOUT + 1)
     """The maximum amount of time to allow an aux model to download before it is killed"""
     preload_timeout: int = Field(default=80, ge=15)

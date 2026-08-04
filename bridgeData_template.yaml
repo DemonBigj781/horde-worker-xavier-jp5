@@ -199,6 +199,10 @@ max_lora_cache_size: 10
 extra_slow_worker: false
 # Low-end cards or low performance: true
 
+# Pause new job pops while Linux reports less than this much available RAM.
+# Existing jobs are allowed to finish. Set to 0 to disable the guard.
+minimum_available_ram_gib: 0
+
 # Maximum seconds allowed for uploading one generated image to R2.
 # Increase this independently when upload latency is high; it does not mark the worker as extra slow.
 r2_upload_timeout: 10

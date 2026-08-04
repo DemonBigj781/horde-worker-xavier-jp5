@@ -1300,6 +1300,12 @@ class HordeWorkerProcessManager:
         logger.debug(f"Models to load: {bridge_data.image_models_to_load}")
         logger.debug(f"Custom Models to load: {bridge_data.custom_models}")
 
+        self._memory_guard_active = False
+        self._memory_pressure_recovery_requested = False
+        self._memory_pressure_recovery_attempted = False
+        self._last_memory_guard_log_time = 0.0
+        self._last_memory_pressure_recovery_time = 0.0
+
         self.horde_model_reference_manager = horde_model_reference_manager
 
         self._process_map = ProcessMap({})
@@ -3813,6 +3819,10 @@ class HordeWorkerProcessManager:
             self._last_pop_no_jobs_available = False
             return
 
+        if not self._memory_guard_allows_job_pop():
+            self._last_pop_no_jobs_available = False
+            return
+
         cur_time = time.time()
 
         if self._too_many_consecutive_failed_jobs:
@@ -4413,6 +4423,8 @@ class HordeWorkerProcessManager:
                         self.receive_and_handle_process_messages()
                         self.detect_deadlock()
 
+                    self._recover_idle_inference_processes_for_memory_pressure()
+
                     if len(self.jobs_pending_safety_check) > 0:
                         async with self._jobs_safety_check_lock:
                             self.start_evaluate_safety()
@@ -4672,6 +4684,92 @@ class HordeWorkerProcessManager:
             reader = SystemResourceReader()
             self._system_resource_reader = reader
         return reader.snapshot()
+
+    def _memory_guard_allows_job_pop(self) -> bool:
+        """Return whether a new API job can be accepted without violating the RAM reserve."""
+        reserve_gib = getattr(self.bridge_data, "minimum_available_ram_gib", 0)
+        if not isinstance(reserve_gib, (int, float)):
+            reserve_gib = 0
+        if reserve_gib <= 0:
+            self._memory_guard_active = False
+            self._memory_pressure_recovery_requested = False
+            self._memory_pressure_recovery_attempted = False
+            return True
+
+        reader = getattr(self, "_system_resource_reader", None)
+        if reader is None:
+            reader = SystemResourceReader()
+            self._system_resource_reader = reader
+
+        available_bytes = reader.available_ram_bytes()
+        if available_bytes is None:
+            return True
+
+        reserve_bytes = int(reserve_gib * 1024**3)
+        recovery_margin_bytes = 1024**3 if getattr(self, "_memory_guard_active", False) else 0
+        required_bytes = reserve_bytes + recovery_margin_bytes
+        if available_bytes >= required_bytes:
+            was_active = getattr(self, "_memory_guard_active", False)
+            self._memory_guard_active = False
+            self._memory_pressure_recovery_requested = False
+            self._memory_pressure_recovery_attempted = False
+            if was_active:
+                logger.info(
+                    "Memory guard resumed new job pops: "
+                    f"{available_bytes / 1024**3:.1f} GiB available.",
+                )
+            return True
+
+        self._memory_guard_active = True
+        if not getattr(self, "_memory_pressure_recovery_attempted", False):
+            self._memory_pressure_recovery_requested = True
+
+        current_time = time.time()
+        if current_time - getattr(self, "_last_memory_guard_log_time", 0.0) >= 30:
+            logger.warning(
+                "Memory guard paused new job pops: "
+                f"{available_bytes / 1024**3:.1f} GiB available, "
+                f"{reserve_gib:.1f} GiB reserve configured.",
+            )
+            self._last_memory_guard_log_time = current_time
+        return False
+
+    def _recover_idle_inference_processes_for_memory_pressure(self) -> bool:
+        """Recycle one idle inference process after accepted generation work drains."""
+        if not getattr(self, "_memory_pressure_recovery_requested", False):
+            return False
+
+        inference_and_safety_queues = (
+            self.jobs_pending_inference,
+            self.jobs_in_progress,
+            self.jobs_pending_safety_check,
+            self.jobs_being_safety_checked,
+        )
+        if any(inference_and_safety_queues):
+            return False
+
+        current_time = time.time()
+        if current_time - getattr(self, "_last_memory_pressure_recovery_time", 0.0) < 30:
+            return False
+
+        idle_states = {HordeProcessState.WAITING_FOR_JOB, HordeProcessState.PRELOADED_MODEL}
+        for process_info in self._process_map.values():
+            if process_info.process_type != HordeProcessType.INFERENCE:
+                continue
+            if process_info.last_process_state not in idle_states:
+                continue
+
+            logger.warning(
+                f"Memory guard is recycling idle inference process {process_info.process_id} "
+                "to release model allocations.",
+            )
+            self._replace_inference_process(process_info, fault_referenced_job=False)
+            self._memory_pressure_recovery_requested = False
+            self._memory_pressure_recovery_attempted = True
+            self._last_memory_pressure_recovery_time = current_time
+            return True
+
+        return False
 
     def get_system_resource_status_line(self) -> str:
         """Return a compact system-resource status line."""

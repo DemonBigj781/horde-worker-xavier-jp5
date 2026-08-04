@@ -148,6 +148,18 @@ def test_legacy_extra_slow_worker_keeps_long_r2_upload_timeout() -> None:
     assert bridge_data.r2_upload_timeout == 60
 
 
+def test_available_ram_reserve_can_be_configured_without_slow_worker_mode() -> None:
+    bridge_data = reGenBridgeData.model_validate(
+        {
+            "extra_slow_worker": False,
+            "minimum_available_ram_gib": 8,
+        },
+    )
+
+    assert bridge_data.extra_slow_worker is False
+    assert bridge_data.minimum_available_ram_gib == 8
+
+
 def test_bridge_data_to_dot_env_file() -> None:
     """Test that the bridge data can be written to a .env file."""
     bridge_data = reGenBridgeData.model_validate({})

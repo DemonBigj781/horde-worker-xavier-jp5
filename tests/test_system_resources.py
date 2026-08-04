@@ -70,3 +70,13 @@ def test_resource_reader_falls_back_to_proc_stat_when_children_file_is_unavailab
     write_fixture(tmp_path, "proc/101/stat", "101 (inference child) S 100 0 0 0 0\n")
 
     assert SystemResourceReader(root=tmp_path)._read_process_tree_memory(100) == 3072 * 1024
+
+
+def test_resource_reader_reports_available_ram_without_full_process_scan(tmp_path: Path) -> None:
+    write_fixture(
+        tmp_path,
+        "proc/meminfo",
+        "MemTotal:       31733760 kB\nMemAvailable:    8388608 kB\n",
+    )
+
+    assert SystemResourceReader(root=tmp_path).available_ram_bytes() == 8 * 1024**3

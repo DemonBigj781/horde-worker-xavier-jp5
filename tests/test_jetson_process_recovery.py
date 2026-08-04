@@ -1,3 +1,5 @@
+import asyncio
+import time
 from unittest.mock import Mock, call
 
 import pytest
@@ -247,3 +249,119 @@ def test_r2_upload_timeout_is_independent_of_slow_worker_flag() -> None:
     manager.bridge_data.extra_slow_worker = True
 
     assert manager.get_r2_upload_timeout_seconds() == 60
+
+
+def test_memory_guard_blocks_job_pop_below_configured_reserve() -> None:
+    manager = object.__new__(HordeWorkerProcessManager)
+    manager.bridge_data = Mock(minimum_available_ram_gib=8)
+    manager._system_resource_reader = Mock()
+    manager._system_resource_reader.available_ram_bytes.return_value = 4 * 1024**3
+    manager._last_memory_guard_log_time = 0
+    manager._memory_pressure_recovery_requested = False
+
+    assert manager._memory_guard_allows_job_pop() is False
+    assert manager._memory_pressure_recovery_requested is True
+
+
+def test_memory_guard_allows_job_pop_above_configured_reserve() -> None:
+    manager = object.__new__(HordeWorkerProcessManager)
+    manager.bridge_data = Mock(minimum_available_ram_gib=8)
+    manager._system_resource_reader = Mock()
+    manager._system_resource_reader.available_ram_bytes.return_value = 9 * 1024**3
+    manager._last_memory_guard_log_time = 0
+    manager._memory_pressure_recovery_requested = True
+
+    assert manager._memory_guard_allows_job_pop() is True
+    assert manager._memory_pressure_recovery_requested is False
+
+
+def test_api_job_pop_returns_before_api_work_when_memory_guard_is_active() -> None:
+    manager = object.__new__(HordeWorkerProcessManager)
+    manager._shutting_down = False
+    manager._memory_guard_allows_job_pop = Mock(return_value=False)
+
+    asyncio.run(manager.api_job_pop())
+
+    manager._memory_guard_allows_job_pop.assert_called_once_with()
+
+
+def test_memory_pressure_recycles_idle_inference_process_without_faulting_job() -> None:
+    process = Mock()
+    process.process_type = HordeProcessType.INFERENCE
+    process.last_process_state = HordeProcessState.WAITING_FOR_JOB
+    process.is_process_busy.return_value = False
+
+    manager = object.__new__(HordeWorkerProcessManager)
+    manager._memory_pressure_recovery_requested = True
+    manager._last_memory_pressure_recovery_time = 0
+    manager._process_map = Mock()
+    manager._process_map.values.return_value = [process]
+    manager.jobs_pending_inference = []
+    manager.jobs_in_progress = []
+    manager.jobs_pending_safety_check = []
+    manager.jobs_being_safety_checked = []
+    manager.jobs_pending_submit = []
+    manager._replace_inference_process = Mock()
+
+    assert manager._recover_idle_inference_processes_for_memory_pressure() is True
+    manager._replace_inference_process.assert_called_once_with(process, fault_referenced_job=False)
+    assert manager._memory_pressure_recovery_requested is False
+
+
+def test_memory_pressure_does_not_recycle_process_while_job_is_active() -> None:
+    manager = object.__new__(HordeWorkerProcessManager)
+    manager._memory_pressure_recovery_requested = True
+    manager._last_memory_pressure_recovery_time = 0
+    manager._process_map = Mock()
+    manager.jobs_pending_inference = []
+    manager.jobs_in_progress = [Mock()]
+    manager.jobs_pending_safety_check = []
+    manager.jobs_being_safety_checked = []
+    manager.jobs_pending_submit = []
+    manager._replace_inference_process = Mock()
+
+    assert manager._recover_idle_inference_processes_for_memory_pressure() is False
+    manager._replace_inference_process.assert_not_called()
+
+
+def test_memory_pressure_can_recycle_while_completed_job_is_uploading() -> None:
+    process = Mock()
+    process.process_id = 1
+    process.process_type = HordeProcessType.INFERENCE
+    process.last_process_state = HordeProcessState.WAITING_FOR_JOB
+
+    manager = object.__new__(HordeWorkerProcessManager)
+    manager._memory_pressure_recovery_requested = True
+    manager._last_memory_pressure_recovery_time = 0
+    manager._process_map = Mock()
+    manager._process_map.values.return_value = [process]
+    manager.jobs_pending_inference = []
+    manager.jobs_in_progress = []
+    manager.jobs_pending_safety_check = []
+    manager.jobs_being_safety_checked = []
+    manager.jobs_pending_submit = [Mock()]
+    manager._replace_inference_process = Mock()
+
+    assert manager._recover_idle_inference_processes_for_memory_pressure() is True
+    manager._replace_inference_process.assert_called_once_with(process, fault_referenced_job=False)
+
+
+def test_memory_pressure_recovery_respects_cooldown() -> None:
+    process = Mock()
+    process.process_type = HordeProcessType.INFERENCE
+    process.last_process_state = HordeProcessState.WAITING_FOR_JOB
+
+    manager = object.__new__(HordeWorkerProcessManager)
+    manager._memory_pressure_recovery_requested = True
+    manager._last_memory_pressure_recovery_time = time.time()
+    manager._process_map = Mock()
+    manager._process_map.values.return_value = [process]
+    manager.jobs_pending_inference = []
+    manager.jobs_in_progress = []
+    manager.jobs_pending_safety_check = []
+    manager.jobs_being_safety_checked = []
+    manager.jobs_pending_submit = []
+    manager._replace_inference_process = Mock()
+
+    assert manager._recover_idle_inference_processes_for_memory_pressure() is False
+    manager._replace_inference_process.assert_not_called()
