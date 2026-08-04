@@ -12,6 +12,16 @@ from loguru import logger
 from horde_worker_regen.process_management._aliased_types import ProcessQueue
 
 
+def _uses_guarded_comfyui_loading(
+    *,
+    low_memory_mode: bool,
+    very_high_memory_mode: bool,
+    vram_reserve_gib: float,
+) -> bool:
+    """Return whether ComfyUI should enforce the shared-memory reserve."""
+    return vram_reserve_gib > 0 and not low_memory_mode and not very_high_memory_mode
+
+
 def _build_inference_comfyui_args(
     *,
     low_memory_mode: bool = False,
@@ -23,7 +33,12 @@ def _build_inference_comfyui_args(
     vram_reserve_gib: float = 0,
 ) -> list[str]:
     """Build ComfyUI arguments while preserving memory for shared-memory systems."""
-    args = ["--disable-smart-memory"]
+    guarded_loading = _uses_guarded_comfyui_loading(
+        low_memory_mode=low_memory_mode,
+        very_high_memory_mode=very_high_memory_mode,
+        vram_reserve_gib=vram_reserve_gib,
+    )
+    args = [] if guarded_loading else ["--disable-smart-memory"]
 
     if amd_gpu:
         args.append("--use-pytorch-cross-attention")
@@ -48,6 +63,31 @@ def _build_inference_comfyui_args(
         args.extend(["--reserve-vram", f"{reserve_gib:g}"])
 
     return args
+
+
+def _build_models_not_to_force_load(
+    *,
+    low_memory_mode: bool = False,
+    high_memory_mode: bool = False,
+    very_high_memory_mode: bool = False,
+    vram_reserve_gib: float = 0,
+) -> list[str]:
+    """Select model families that ComfyUI may partially load or offload."""
+    models = ["flux"]
+    guarded_loading = _uses_guarded_comfyui_loading(
+        low_memory_mode=low_memory_mode,
+        very_high_memory_mode=very_high_memory_mode,
+        vram_reserve_gib=vram_reserve_gib,
+    )
+
+    if very_high_memory_mode:
+        return models
+    if guarded_loading or low_memory_mode:
+        models.extend(["sdxl", "cascade"])
+    elif high_memory_mode:
+        models.append("cascade")
+
+    return models
 
 
 def start_inference_process(
@@ -121,24 +161,12 @@ def start_inference_process(
                 vram_reserve_gib=vram_reserve_gib,
             )
 
-            models_not_to_force_load = ["flux"]
-
-            if very_high_memory_mode:
-                pass
-            elif high_memory_mode:
-                # extra_comfyui_args.append("--normalvram")
-                models_not_to_force_load.extend(
-                    [
-                        "cascade",
-                    ],
-                )
-            elif low_memory_mode:
-                models_not_to_force_load.extend(
-                    [
-                        "sdxl",
-                        "cascade",
-                    ],
-                )
+            models_not_to_force_load = _build_models_not_to_force_load(
+                low_memory_mode=low_memory_mode,
+                high_memory_mode=high_memory_mode,
+                very_high_memory_mode=very_high_memory_mode,
+                vram_reserve_gib=vram_reserve_gib,
+            )
             if "--reserve-vram" in extra_comfyui_args:
                 reserve_index = extra_comfyui_args.index("--reserve-vram")
                 logger.info(f"Reserving {extra_comfyui_args[reserve_index + 1]}GB VRAM.")

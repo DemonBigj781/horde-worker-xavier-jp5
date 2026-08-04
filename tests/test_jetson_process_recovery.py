@@ -281,6 +281,31 @@ def test_inference_process_reserves_guarded_memory_inside_comfyui() -> None:
     reserve_index = args.index("--reserve-vram")
     assert args[reserve_index + 1] == "8"
     assert "1.4" not in args
+    assert "--disable-smart-memory" not in args
+
+
+def test_guarded_memory_avoids_force_loading_large_model_families() -> None:
+    models = worker_entry_points._build_models_not_to_force_load(vram_reserve_gib=8)
+
+    assert models == ["flux", "sdxl", "cascade"]
+
+
+def test_guarded_high_memory_avoids_force_loading_large_model_families() -> None:
+    args = worker_entry_points._build_inference_comfyui_args(high_memory_mode=True, vram_reserve_gib=8)
+    models = worker_entry_points._build_models_not_to_force_load(high_memory_mode=True, vram_reserve_gib=8)
+
+    assert "--disable-smart-memory" not in args
+    assert models == ["flux", "sdxl", "cascade"]
+
+
+def test_very_high_memory_preserves_gpu_only_force_loading_policy() -> None:
+    models = worker_entry_points._build_models_not_to_force_load(
+        high_memory_mode=True,
+        very_high_memory_mode=True,
+        vram_reserve_gib=8,
+    )
+
+    assert models == ["flux"]
 
 
 def test_inference_process_preserves_default_comfyui_reserve() -> None:
@@ -288,6 +313,11 @@ def test_inference_process_preserves_default_comfyui_reserve() -> None:
 
     reserve_index = args.index("--reserve-vram")
     assert args[reserve_index + 1] == "1.4"
+    assert "--disable-smart-memory" in args
+
+
+def test_default_model_loading_policy_preserves_v10_behavior() -> None:
+    assert worker_entry_points._build_models_not_to_force_load() == ["flux"]
 
 
 @pytest.mark.parametrize(
@@ -302,6 +332,7 @@ def test_explicit_memory_modes_do_not_add_a_vram_reserve(mode_options: dict[str,
 
     assert expected_arg in args
     assert "--reserve-vram" not in args
+    assert "--disable-smart-memory" in args
 
 
 def test_heavy_model_reserve_uses_larger_guarded_value() -> None:
