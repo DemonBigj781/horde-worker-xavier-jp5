@@ -52,6 +52,9 @@ def test_jetson_launcher_uses_bounded_cpu_threads() -> None:
 
     assert "getconf _NPROCESSORS_CONF" in launcher
     assert "compute_threads=$((configured_cpus / 2))" in launcher
+    assert "PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128" in launcher
+    assert "PYTORCH_CHANNELS_LAST=1" in launcher
+    assert "PYTORCH_JIT=0" in launcher
     assert "LD_PRELOAD" in launcher
     assert 'exec "$script_dir/.venv/bin/python" -s' in launcher
 

@@ -16,6 +16,12 @@ if test -f "$script_dir/.env"; then
 fi
 
 export CUDA_VISIBLE_DEVICES=0
+# Keep large contiguous CUDA allocations from being split too aggressively.
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
+# Expose a channels-last preference to worker components that honor it.
+export PYTORCH_CHANNELS_LAST=1
+# Avoid ARM64 startup stalls from PyTorch JIT compilation.
+export PYTORCH_JIT=0
 configured_cpus=$(getconf _NPROCESSORS_CONF)
 compute_threads=$((configured_cpus / 2))
 if test "$compute_threads" -lt 1; then
@@ -27,4 +33,5 @@ export NUMEXPR_NUM_THREADS=$compute_threads
 export LD_PRELOAD="/lib/aarch64-linux-gnu/libGLdispatch.so.0${LD_PRELOAD:+:$LD_PRELOAD}"
 
 "$script_dir/.venv/bin/python" -s "$script_dir/download_models.py"
+# Execute the core worker wrapper.
 exec "$script_dir/.venv/bin/python" -s "$script_dir/run_worker.py" "$@"
