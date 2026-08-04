@@ -175,6 +175,10 @@ class HordeSafetyProcess(HordeProcess):
         if message.control_flag != HordeControlFlag.EVALUATE_SAFETY:
             raise ValueError(f"Expected {HordeControlFlag.EVALUATE_SAFETY}, got {message.control_flag}")
 
+        self.send_process_state_change_message(
+            HordeProcessState.EVALUATING_SAFETY,
+            f"Evaluating safety for job {message.job_id}",
+        )
         self.send_memory_report_message(include_vram=False)
 
         time_start = time.time()

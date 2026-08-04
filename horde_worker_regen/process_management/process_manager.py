@@ -244,7 +244,10 @@ class HordeProcessInfo:
         """Return true if the process is alive."""
         if not self.mp_process.is_alive():
             return False
-        return not (self.last_process_state == HordeProcessState.PROCESS_ENDING or HordeProcessState.PROCESS_ENDED)
+        return self.last_process_state not in (
+            HordeProcessState.PROCESS_ENDING,
+            HordeProcessState.PROCESS_ENDED,
+        )
 
     def safe_send_message(self, message: HordeControlMessage) -> bool:
         """Send a message to the process.
@@ -260,7 +263,13 @@ class HordeProcessInfo:
             return True
         except Exception as e:
             global _caught_signal
-            if not _caught_signal:
+            pipe_expected_to_close = (
+                self.last_process_state in (HordeProcessState.PROCESS_ENDING, HordeProcessState.PROCESS_ENDED)
+                or not self.mp_process.is_alive()
+            )
+            if pipe_expected_to_close and isinstance(e, (BrokenPipeError, EOFError, OSError)):
+                logger.debug(f"Process {self.process_id} control channel already closed: {e}")
+            elif not _caught_signal:
                 logger.error(f"Failed to send message to process {self.process_id}: {e}")
             return False
 
@@ -568,7 +577,7 @@ class ProcessMap(dict[int, HordeProcessInfo]):
         """Return the number of inference processes that are available to accept jobs."""
         count = 0
         for p in self.values():
-            if p.process_type != HordeProcessType.INFERENCE and not p.is_process_busy():
+            if p.process_type == HordeProcessType.INFERENCE and p.can_accept_job():
                 count += 1
         return count
 
@@ -1758,19 +1767,26 @@ class HordeWorkerProcessManager:
             self._safety_processes_should_be_replaced = False
             self._num_process_recoveries += 1
 
-    def _replace_inference_process(self, process_info: HordeProcessInfo) -> None:
+    def _replace_inference_process(
+        self,
+        process_info: HordeProcessInfo,
+        *,
+        fault_referenced_job: bool = True,
+    ) -> None:
         """Replaces an inference process (for whatever reason; probably because it crashed).
 
         Args:
             process_info: The process to replace.
+            fault_referenced_job: Whether the process's last referenced job should be faulted.
         """
         logger.debug(f"Replacing {process_info}")
         # job = next(((job, pid) for job, pid in self.jobs_in_progress if pid == process_info.process_id), None)
         job_to_remove = None
-        for process in self._process_map.values():
-            if process.last_job_referenced is not None and process.last_job_referenced in self.jobs_lookup:
-                job_to_remove = process.last_job_referenced
-                break
+        if fault_referenced_job:
+            for process in self._process_map.values():
+                if process.last_job_referenced is not None and process.last_job_referenced in self.jobs_lookup:
+                    job_to_remove = process.last_job_referenced
+                    break
 
         if process_info.last_process_state == HordeProcessState.INFERENCE_STARTING:
             try:
@@ -1802,6 +1818,9 @@ class HordeWorkerProcessManager:
             self.handle_job_fault(faulted_job=job_to_remove, process_info=process_info)
 
         self._end_inference_process(process_info)
+        # The replacement reuses the logical process ID. Drain the old child's
+        # final messages before the new ProcessInfo entry occupies that slot.
+        self.receive_and_handle_process_messages()
         self._start_inference_process(process_info.process_id)
 
         self._num_process_recoveries += 1
@@ -2279,8 +2298,8 @@ class HordeWorkerProcessManager:
                 return False
 
             if (
-                available_process.last_process_state != HordeProcessState.WAITING_FOR_JOB
-                and available_process.loaded_horde_model_name is not None
+                available_process.loaded_horde_model_name is not None
+                and available_process.loaded_horde_model_name != job.model
                 and self.bridge_data.cycle_process_on_model_change
                 and not self._shutting_down
             ):
@@ -2289,8 +2308,8 @@ class HordeWorkerProcessManager:
                 # We also don't want to block waiting for the newly forked job to become
                 # available, so we'll wait for it to become ready before scheduling a model
                 # to be loaded on it.
-                self._replace_inference_process(available_process)
-                return False
+                self._replace_inference_process(available_process, fault_referenced_job=False)
+                return True
 
             num_preloading_processes = self._process_map.num_preloading_processes()
 
@@ -2928,6 +2947,8 @@ class HordeWorkerProcessManager:
                 for job_info in self.jobs_being_safety_checked:
                     self.jobs_pending_safety_check.append(job_info)
         else:
+            safety_process.last_process_state = HordeProcessState.EVALUATING_SAFETY
+            safety_process.last_control_flag = HordeControlFlag.EVALUATE_SAFETY
             self.jobs_pending_safety_check.remove(completed_job_info)
             self.jobs_being_safety_checked.append(completed_job_info)
 
@@ -2957,6 +2978,12 @@ class HordeWorkerProcessManager:
 
     _num_job_slowdowns = 0
     """The number of jobs which did not meet the minimum expected kudos/second rate."""
+
+    def get_r2_upload_timeout_seconds(self) -> int:
+        """Return the R2 upload timeout appropriate for this worker profile."""
+        if self.bridge_data.extra_slow_worker:
+            return 60
+        return 10
 
     @logger.catch(reraise=True)
     async def submit_single_generation(self, new_submit: PendingSubmitJob) -> PendingSubmitJob:
@@ -2998,11 +3025,12 @@ class HordeWorkerProcessManager:
                 return new_submit
 
             async def _do_upload(new_submit: PendingSubmitJob, image_in_buffer_bytes: bytes) -> bool:
+                upload_timeout = self.get_r2_upload_timeout_seconds()
                 async with self._aiohttp_client_session.put(
                     yarl.URL(new_submit.r2_upload, encoded=True),
                     data=image_in_buffer_bytes,
                     skip_auto_headers=["content-type"],
-                    timeout=aiohttp.ClientTimeout(total=10),
+                    timeout=aiohttp.ClientTimeout(total=upload_timeout),
                     ssl=sslcontext,
                 ) as response:
                     if response.status == 500:
@@ -3019,15 +3047,15 @@ class HordeWorkerProcessManager:
                 return True
 
             try:
+                upload_timeout = self.get_r2_upload_timeout_seconds()
                 submit_success = await asyncio.wait_for(
                     _do_upload(new_submit, image_in_buffer.getvalue()),
-                    timeout=10 + 1,
+                    timeout=upload_timeout + 1,
                 )
                 if not submit_success:
                     return new_submit
             except _async_client_exceptions as e:
-                logger.warning("Upload to AI Horde R2 timed out. Will retry.")
-                logger.debug(f"{type(e).__name__}: {e}")
+                logger.warning(f"Upload to AI Horde R2 failed ({type(e).__name__}: {e}). Will retry.")
                 new_submit.retry()
                 return new_submit
             except Exception as e:
