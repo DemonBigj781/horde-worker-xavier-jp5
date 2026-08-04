@@ -12,6 +12,44 @@ from loguru import logger
 from horde_worker_regen.process_management._aliased_types import ProcessQueue
 
 
+def _build_inference_comfyui_args(
+    *,
+    low_memory_mode: bool = False,
+    high_memory_mode: bool = False,
+    very_high_memory_mode: bool = False,
+    amd_gpu: bool = False,
+    directml: int | None = None,
+    vram_heavy_models: bool = False,
+    vram_reserve_gib: float = 0,
+) -> list[str]:
+    """Build ComfyUI arguments while preserving memory for shared-memory systems."""
+    args = ["--disable-smart-memory"]
+
+    if amd_gpu:
+        args.append("--use-pytorch-cross-attention")
+
+    if directml is not None:
+        args.append(f"--directml={directml}")
+
+    reserve_gib = 0.0
+    if very_high_memory_mode:
+        args.append("--gpu-only")
+    elif low_memory_mode:
+        args.append("--novram")
+    elif high_memory_mode and vram_heavy_models:
+        reserve_gib = 6
+    elif not high_memory_mode and not vram_heavy_models:
+        reserve_gib = 1.4
+
+    if not low_memory_mode and not very_high_memory_mode:
+        reserve_gib = max(reserve_gib, vram_reserve_gib)
+
+    if reserve_gib > 0:
+        args.extend(["--reserve-vram", f"{reserve_gib:g}"])
+
+    return args
+
+
 def start_inference_process(
     process_id: int,
     process_message_queue: ProcessQueue,
@@ -28,6 +66,7 @@ def start_inference_process(
     amd_gpu: bool = False,
     directml: int | None = None,
     vram_heavy_models: bool = False,
+    vram_reserve_gib: float = 0,
 ) -> None:
     """Start an inference process.
 
@@ -49,6 +88,7 @@ def start_inference_process(
         directml (int | None, optional): If not None, the process will attempt to use DirectML \
             with the specified device
         vram_heavy_models (bool, optional): If true, the process will attempt to reserve more VRAM. Defaults to False.
+        vram_reserve_gib (float, optional): Memory to keep free inside ComfyUI. Defaults to 0.
     """
     with contextlib.nullcontext():  # contextlib.redirect_stdout(None), contextlib.redirect_stderr(None):
         logger.remove()
@@ -71,18 +111,20 @@ def start_inference_process(
                 f"very_high_memory_mode={very_high_memory_mode}",
             )
 
-            extra_comfyui_args = ["--disable-smart-memory"]
-
-            if amd_gpu:
-                extra_comfyui_args.append("--use-pytorch-cross-attention")
-
-            if directml is not None:
-                extra_comfyui_args.append(f"--directml={directml}")
+            extra_comfyui_args = _build_inference_comfyui_args(
+                low_memory_mode=low_memory_mode,
+                high_memory_mode=high_memory_mode,
+                very_high_memory_mode=very_high_memory_mode,
+                amd_gpu=amd_gpu,
+                directml=directml,
+                vram_heavy_models=vram_heavy_models,
+                vram_reserve_gib=vram_reserve_gib,
+            )
 
             models_not_to_force_load = ["flux"]
 
             if very_high_memory_mode:
-                extra_comfyui_args.append("--gpu-only")
+                pass
             elif high_memory_mode:
                 # extra_comfyui_args.append("--normalvram")
                 models_not_to_force_load.extend(
@@ -91,22 +133,16 @@ def start_inference_process(
                     ],
                 )
             elif low_memory_mode:
-                extra_comfyui_args.append("--novram")
                 models_not_to_force_load.extend(
                     [
                         "sdxl",
                         "cascade",
                     ],
                 )
-            elif not vram_heavy_models:
-                logger.info("Reserving 1.4GB VRAM.")
-                extra_comfyui_args.extend(["--reserve-vram", "1.4"])
-
-            if high_memory_mode and vram_heavy_models:
-                logger.info("High memory mode and vram heavy models are both enabled. Reserving 6GB VRAM.")
-                extra_comfyui_args.extend(["--reserve-vram", "6"])
-
-            if "--reserve-vram" not in extra_comfyui_args:
+            if "--reserve-vram" in extra_comfyui_args:
+                reserve_index = extra_comfyui_args.index("--reserve-vram")
+                logger.info(f"Reserving {extra_comfyui_args[reserve_index + 1]}GB VRAM.")
+            else:
                 logger.warning("No VRAM reservation specified.")
 
             with logger.catch(reraise=True):

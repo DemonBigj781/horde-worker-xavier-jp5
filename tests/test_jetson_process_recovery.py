@@ -5,7 +5,7 @@ from unittest.mock import Mock, call
 import pytest
 from loguru import logger
 
-from horde_worker_regen.process_management import process_manager
+from horde_worker_regen.process_management import process_manager, worker_entry_points
 from horde_worker_regen.process_management.horde_process import HordeProcessType
 from horde_worker_regen.process_management.messages import (
     HordeControlFlag,
@@ -273,6 +273,74 @@ def test_memory_guard_allows_job_pop_above_configured_reserve() -> None:
 
     assert manager._memory_guard_allows_job_pop() is True
     assert manager._memory_pressure_recovery_requested is False
+
+
+def test_inference_process_reserves_guarded_memory_inside_comfyui() -> None:
+    args = worker_entry_points._build_inference_comfyui_args(vram_reserve_gib=8)
+
+    reserve_index = args.index("--reserve-vram")
+    assert args[reserve_index + 1] == "8"
+    assert "1.4" not in args
+
+
+def test_inference_process_preserves_default_comfyui_reserve() -> None:
+    args = worker_entry_points._build_inference_comfyui_args()
+
+    reserve_index = args.index("--reserve-vram")
+    assert args[reserve_index + 1] == "1.4"
+
+
+@pytest.mark.parametrize(
+    ("mode_options", "expected_arg"),
+    [
+        ({"low_memory_mode": True}, "--novram"),
+        ({"very_high_memory_mode": True}, "--gpu-only"),
+    ],
+)
+def test_explicit_memory_modes_do_not_add_a_vram_reserve(mode_options: dict[str, bool], expected_arg: str) -> None:
+    args = worker_entry_points._build_inference_comfyui_args(vram_reserve_gib=8, **mode_options)
+
+    assert expected_arg in args
+    assert "--reserve-vram" not in args
+
+
+def test_heavy_model_reserve_uses_larger_guarded_value() -> None:
+    args = worker_entry_points._build_inference_comfyui_args(
+        high_memory_mode=True,
+        vram_heavy_models=True,
+        vram_reserve_gib=8,
+    )
+
+    reserve_index = args.index("--reserve-vram")
+    assert args[reserve_index + 1] == "8"
+
+
+def test_process_manager_forwards_memory_reserve_to_inference_child(monkeypatch: pytest.MonkeyPatch) -> None:
+    process = Mock()
+    monkeypatch.setattr(process_manager.multiprocessing, "Pipe", Mock(return_value=(Mock(), Mock())))
+    process_factory = Mock(return_value=process)
+    monkeypatch.setattr(process_manager.multiprocessing, "Process", process_factory)
+
+    manager = object.__new__(HordeWorkerProcessManager)
+    manager.bridge_data = Mock(
+        image_models_to_load=[],
+        very_high_memory_mode=False,
+        high_memory_mode=False,
+        minimum_available_ram_gib=8,
+    )
+    manager._process_message_queue = Mock()
+    manager._inference_semaphore = Mock()
+    manager._disk_lock = Mock()
+    manager._aux_model_lock = Mock()
+    manager._vae_decode_semaphore = Mock()
+    manager.num_processes_launched = 0
+    manager._amd_gpu = False
+    manager._directml = None
+    manager._process_map = {}
+
+    manager._start_inference_process(1)
+
+    assert process_factory.call_args.kwargs["kwargs"]["vram_reserve_gib"] == 8
 
 
 def test_api_job_pop_returns_before_api_work_when_memory_guard_is_active() -> None:

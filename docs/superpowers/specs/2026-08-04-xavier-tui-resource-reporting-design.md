@@ -33,6 +33,8 @@ status output.
 - Preserve the Xavier-specific 60-second R2 upload timeout independently.
 - Keep `queue_size: 0`, disabled post-process overlap, and the explicit preload
   timeout.
+- Apply the configured available-RAM reserve inside ComfyUI so unified-memory
+  allocations cannot consume the guard's headroom.
 - Disable `extra_slow_worker` after the TUI/resource deployment is verified
   idle-safe.
 

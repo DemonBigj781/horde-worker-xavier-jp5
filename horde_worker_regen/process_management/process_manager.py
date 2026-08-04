@@ -1670,6 +1670,7 @@ class HordeWorkerProcessManager:
                 "amd_gpu": self._amd_gpu,
                 "directml": self._directml,
                 "vram_heavy_models": vram_heavy_models,
+                "vram_reserve_gib": self.bridge_data.minimum_available_ram_gib,
             },
         )
         process.start()
