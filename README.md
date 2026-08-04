@@ -16,6 +16,7 @@ You can read about [kudos](https://github.com/Haidra-Org/haidra-assets/blob/main
       - [Option 1: Using Git (Recommended)](#option-1-using-git-recommended)
       - [Option 2: Without Git](#option-2-without-git)
     - [Linux](#linux)
+      - [JetPack 5 / Jetson AGX Xavier](#jetpack-5--jetson-agx-xavier)
     - [AMD GPUs](#amd-gpus)
     - [DirectML](#directml)
   - [Configuration](#configuration)
@@ -79,6 +80,22 @@ Open a terminal and run:
 git clone https://github.com/Haidra-Org/horde-worker-reGen.git
 cd horde-worker-reGen
 ```
+
+#### JetPack 5 / Jetson AGX Xavier
+
+JetPack 5 is a legacy, explicit install profile. It is limited to aarch64,
+L4T R35, CUDA 11.4, Python 3.10.20, and the verified NVIDIA PyTorch and
+xFormers wheels listed in `jetson-wheel-checksums.sha256`. Generic `cu118`
+wheels are not substitutes for NVIDIA's JetPack CUDA 11.4 wheels.
+
+Place the four verified wheels in `$HOME/jetson`, build xFormers locally if
+needed with `./build-xformers-jetson-jp5.sh`, then run
+`./install-jetson-jp5.sh`. Start this runtime with
+`./start-jetson-jp5.sh`.
+
+The installer refuses unsupported platforms, unverified wheels, and an
+existing virtual environment. Override paths only when necessary with
+`JETSON_WHEEL_DIR`, `JETSON_VENV_DIR`, `JETSON_BUILD_ROOT`, or `PYTHON_BIN`.
 
 ### AMD GPUs
 
