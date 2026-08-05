@@ -8,6 +8,7 @@ from ruamel.yaml import YAML
 
 from horde_worker_regen.bridge_data.data_model import reGenBridgeData
 from horde_worker_regen.bridge_data.load_config import BridgeDataLoader, ConfigFormat
+from horde_worker_regen.consts import BASE_LORA_DOWNLOAD_TIMEOUT, EXTRA_LORA_DOWNLOAD_TIMEOUT, MAX_LORAS
 
 
 def test_bridge_data_yaml() -> None:
@@ -31,6 +32,14 @@ def test_bridge_data_yaml() -> None:
 
     assert parsed_bridge_data.meta_load_instructions is not None
     assert len(parsed_bridge_data.meta_load_instructions) == 1
+
+
+def test_default_download_timeout_covers_all_sequential_lora_wait_windows() -> None:
+    expected_download_budget = sum(
+        BASE_LORA_DOWNLOAD_TIMEOUT + (EXTRA_LORA_DOWNLOAD_TIMEOUT * index) for index in range(MAX_LORAS)
+    )
+
+    assert reGenBridgeData.model_fields["download_timeout"].default == expected_download_budget + 1
 
 
 def test_bridge_data_loader_yaml_template() -> None:
