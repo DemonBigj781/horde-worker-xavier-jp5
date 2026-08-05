@@ -80,6 +80,7 @@ class HordeInferenceProcess(HordeProcess):
     _active_model_name: str | None = None
     """The name of the currently active model. Note that other models may be loaded in RAM or VRAM."""
     _aux_model_lock: Lock
+    _serialize_aux_model_downloads: bool
 
     def __init__(
         self,
@@ -93,6 +94,7 @@ class HordeInferenceProcess(HordeProcess):
         process_launch_identifier: int,
         *,
         high_memory_mode: bool = False,
+        serialize_aux_model_downloads: bool = True,
     ) -> None:
         """Initialise the HordeInferenceProcess.
 
@@ -109,6 +111,8 @@ class HordeInferenceProcess(HordeProcess):
             high_memory_mode (bool, optional): Whether or not to use high memory mode. This mode uses more memory, but\
                 may be faster if the system has enough memory and VRAM. \
                 Defaults to False.
+            serialize_aux_model_downloads (bool, optional): Whether auxiliary model downloads must share a lock with \
+                other inference processes. Defaults to True.
         """
         super().__init__(
             process_id=process_id,
@@ -119,6 +123,7 @@ class HordeInferenceProcess(HordeProcess):
         )
 
         self._aux_model_lock = aux_model_lock
+        self._serialize_aux_model_downloads = serialize_aux_model_downloads
 
         # We import these here to guard against potentially importing them in the main process
         # which would create shared objects, potentially causing issues
@@ -290,7 +295,13 @@ class HordeInferenceProcess(HordeProcess):
         Returns:
             float | None: The time elapsed during downloading, or None if no models were downloaded.
         """
-        with self._aux_model_lock:
+        loras = job_info.payload.loras or []
+        if not loras:
+            logger.info("No auxiliary models to download")
+            return None
+
+        lock_context = self._aux_model_lock if self._serialize_aux_model_downloads else contextlib.nullcontext()
+        with lock_context:
             time_start = time.time()
 
             lora_manager = self._shared_model_manager.manager.lora
@@ -301,12 +312,6 @@ class HordeInferenceProcess(HordeProcess):
             lora_manager._using_multiprocessing = False
 
             performed_a_download = False
-
-            loras = job_info.payload.loras or []
-
-            if not loras:
-                logger.info("No auxiliary models to download")
-                return None
 
             try:
                 lora_manager.load_model_database()

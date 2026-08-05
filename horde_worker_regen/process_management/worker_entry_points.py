@@ -107,6 +107,7 @@ def start_inference_process(
     directml: int | None = None,
     vram_heavy_models: bool = False,
     vram_reserve_gib: float = 0,
+    serialize_aux_model_downloads: bool = True,
 ) -> None:
     """Start an inference process.
 
@@ -129,6 +130,8 @@ def start_inference_process(
             with the specified device
         vram_heavy_models (bool, optional): If true, the process will attempt to reserve more VRAM. Defaults to False.
         vram_reserve_gib (float, optional): Memory to keep free inside ComfyUI. Defaults to 0.
+        serialize_aux_model_downloads (bool, optional): Whether auxiliary model downloads must be serialized across \
+            inference processes. Defaults to True.
     """
     with contextlib.nullcontext():  # contextlib.redirect_stdout(None), contextlib.redirect_stderr(None):
         logger.remove()
@@ -199,6 +202,7 @@ def start_inference_process(
             aux_model_lock=aux_model_lock,
             vae_decode_semaphore=vae_decode_semaphore,
             process_launch_identifier=process_launch_identifier,
+            serialize_aux_model_downloads=serialize_aux_model_downloads,
         )
 
         worker_process.main_loop()

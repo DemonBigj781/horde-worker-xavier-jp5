@@ -1,12 +1,13 @@
 import asyncio
 import time
-from unittest.mock import Mock, call
+from unittest.mock import MagicMock, Mock, call
 
 import pytest
 from loguru import logger
 
 from horde_worker_regen.process_management import process_manager, worker_entry_points
 from horde_worker_regen.process_management.horde_process import HordeProcessType
+from horde_worker_regen.process_management.inference_process import HordeInferenceProcess
 from horde_worker_regen.process_management.messages import (
     HordeControlFlag,
     HordeControlMessage,
@@ -171,6 +172,92 @@ def test_intentional_process_cycle_does_not_fault_referenced_job() -> None:
 
     manager.handle_job_fault.assert_not_called()
     assert calls.mock_calls == [call.end(process), call.drain(), call.start(process.process_id)]
+
+
+def test_aux_model_download_without_loras_does_not_acquire_shared_lock() -> None:
+    """Ordinary jobs must not wait behind a stale auxiliary-download lock."""
+    inference_process = object.__new__(HordeInferenceProcess)
+    inference_process._aux_model_lock = MagicMock()
+    inference_process._serialize_aux_model_downloads = True
+    inference_process._shared_model_manager = Mock()
+    job = Mock()
+    job.payload.loras = []
+
+    assert inference_process.download_aux_models(job) is None
+    inference_process._aux_model_lock.__enter__.assert_not_called()
+
+
+@pytest.mark.parametrize(("serialize_downloads", "expected_lock_entries"), [(False, 0), (True, 1)])
+def test_aux_model_download_lock_matches_process_concurrency(
+    serialize_downloads: bool,
+    expected_lock_entries: int,
+) -> None:
+    inference_process = object.__new__(HordeInferenceProcess)
+    inference_process._aux_model_lock = MagicMock()
+    inference_process._serialize_aux_model_downloads = serialize_downloads
+    lora_manager = Mock()
+    lora_manager.is_model_available.return_value = True
+    inference_process._shared_model_manager = Mock()
+    inference_process._shared_model_manager.manager.lora = lora_manager
+    lora = Mock()
+    lora.name = "cached-lora"
+    job = Mock()
+    job.payload.loras = [lora]
+
+    assert inference_process.download_aux_models(job) is None
+    assert inference_process._aux_model_lock.__enter__.call_count == expected_lock_entries
+
+
+@pytest.mark.parametrize(("max_inference_processes", "expected"), [(1, False), (2, True)])
+def test_process_manager_configures_aux_model_download_serialization(
+    monkeypatch: pytest.MonkeyPatch,
+    max_inference_processes: int,
+    expected: bool,
+) -> None:
+    process = Mock()
+    monkeypatch.setattr(process_manager.multiprocessing, "Pipe", Mock(return_value=(Mock(), Mock())))
+    process_factory = Mock(return_value=process)
+    monkeypatch.setattr(process_manager.multiprocessing, "Process", process_factory)
+
+    manager = object.__new__(HordeWorkerProcessManager)
+    manager.bridge_data = Mock(
+        image_models_to_load=[],
+        very_high_memory_mode=False,
+        high_memory_mode=False,
+        minimum_available_ram_gib=8,
+    )
+    manager.max_inference_processes = max_inference_processes
+    manager._process_message_queue = Mock()
+    manager._inference_semaphore = Mock()
+    manager._disk_lock = Mock()
+    manager._aux_model_lock = Mock()
+    manager._vae_decode_semaphore = Mock()
+    manager.num_processes_launched = 0
+    manager._amd_gpu = False
+    manager._directml = None
+    manager._process_map = {}
+
+    manager._start_inference_process(1)
+
+    assert process_factory.call_args.kwargs["kwargs"]["serialize_aux_model_downloads"] is expected
+
+
+def test_force_killed_inference_child_is_reaped_before_replacement() -> None:
+    process_info = make_process_info(Mock(), alive=True)
+    manager = object.__new__(HordeWorkerProcessManager)
+    manager._process_map = Mock()
+    manager._horde_model_map = Mock()
+    manager._shutting_down = False
+
+    manager._end_inference_process(process_info)
+
+    assert process_info.mp_process.mock_calls == [
+        call.join(timeout=1),
+        call.is_alive(),
+        call.kill(),
+        call.join(timeout=5),
+        call.is_alive(),
+    ]
 
 
 def test_safety_dispatch_marks_process_busy_before_sending_next_job(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -368,6 +455,7 @@ def test_process_manager_forwards_memory_reserve_to_inference_child(monkeypatch:
     manager._amd_gpu = False
     manager._directml = None
     manager._process_map = {}
+    manager.max_inference_processes = 1
 
     manager._start_inference_process(1)
 

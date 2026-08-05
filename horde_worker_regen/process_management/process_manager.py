@@ -1671,6 +1671,7 @@ class HordeWorkerProcessManager:
                 "directml": self._directml,
                 "vram_heavy_models": vram_heavy_models,
                 "vram_reserve_gib": self.bridge_data.minimum_available_ram_gib,
+                "serialize_aux_model_downloads": self.max_inference_processes > 1,
             },
         )
         process.start()
@@ -1733,7 +1734,11 @@ class HordeWorkerProcessManager:
                 logger.debug(f"Process {process_info.process_id} control channel vanished")
         try:
             process_info.mp_process.join(timeout=1)
-            process_info.mp_process.kill()
+            if process_info.mp_process.is_alive():
+                process_info.mp_process.kill()
+                process_info.mp_process.join(timeout=5)
+                if process_info.mp_process.is_alive():
+                    logger.error(f"Failed to reap inference process {process_info.process_id} after killing it")
         except Exception as e:
             logger.error(f"Failed to kill process {process_info.process_id}: {e}")
 
