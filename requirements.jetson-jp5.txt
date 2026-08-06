@@ -76,8 +76,8 @@ alembic==1.19.0
 av==17.1.0
 blake3==1.0.9
 comfy-aimdo==0.4.9
-# Installed from a pinned, PyTorch 2.1-compatible source backport by the
-# JetPack installer. The published wheel requires torch.library.custom_op.
+# Comfy Kitchen, Triton, and Flash Attention are installed from tested Xavier
+# wheels by the JetPack installer.
 comfyui-embedded-docs==0.5.3
 comfyui-frontend-package==1.45.15
 comfyui-workflow-templates==0.9.98

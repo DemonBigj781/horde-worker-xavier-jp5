@@ -422,6 +422,15 @@ index baa3bfe..4b07b4f 100644
  license = { file="LICENSE" }
  classifiers = [
      "Programming Language :: Python :: 3",
+@@ -30,7 +30,7 @@ dependencies = [
+     "blake3",
+     "clip-anytorch>=2.6.0",
+     "comfy-aimdo==0.4.9",
+-    "comfy-kitchen==0.2.10",
++    "comfy-kitchen==0.2.26",
+     "comfyui-embedded-docs==0.5.3",
+     "comfyui-frontend-package==1.45.15",
+     "comfyui-workflow-templates==0.9.98",
 @@ -44,7 +44,7 @@ dependencies = [
      "horde_model_reference>=5.1.1,<6.0.0",
      "horde-sdk>=0.20.1",
@@ -599,7 +608,7 @@ index 0000000..86b1318
 +    """Provide the small ``torch.library.custom_op`` surface used by Comfy Kitchen.
 +
 +    JetPack 5's NVIDIA PyTorch 2.1 build predates ``torch.library.custom_op``.
-+    Comfy Kitchen 0.2.10 uses custom ops only as dispatch wrappers around its
++    Comfy Kitchen 0.2.26 uses custom ops only as dispatch wrappers around its
 +    registered eager/CUDA implementations, so direct call-through preserves its
 +    runtime behavior while fake/meta registration remains unavailable.
 +    """

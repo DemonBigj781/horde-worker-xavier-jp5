@@ -1,4 +1,6 @@
 import contextlib
+import os
+import platform
 import sys
 from typing import Protocol
 
@@ -97,6 +99,10 @@ def _uses_guarded_comfyui_loading(
     return vram_reserve_gib > 0 and not low_memory_mode and not very_high_memory_mode
 
 
+def _is_jetson_runtime() -> bool:
+    return sys.platform == "linux" and platform.machine() == "aarch64" and os.path.isfile("/etc/nv_tegra_release")
+
+
 def _build_inference_comfyui_args(
     *,
     low_memory_mode: bool = False,
@@ -106,6 +112,8 @@ def _build_inference_comfyui_args(
     directml: int | None = None,
     vram_heavy_models: bool = False,
     vram_reserve_gib: float = 0,
+    use_flash_attention: bool = False,
+    enable_triton_backend: bool = False,
 ) -> list[str]:
     """Build ComfyUI arguments while preserving memory for shared-memory systems."""
     guarded_loading = _uses_guarded_comfyui_loading(
@@ -117,6 +125,10 @@ def _build_inference_comfyui_args(
 
     if amd_gpu:
         args.append("--use-pytorch-cross-attention")
+    elif use_flash_attention:
+        args.append("--use-flash-attention")
+    if enable_triton_backend:
+        args.append("--enable-triton-backend")
     if directml is not None:
         args.append(f"--directml={directml}")
 
@@ -255,6 +267,7 @@ def start_inference_process(
                     f"very_high_memory_mode={very_high_memory_mode}",
                 )
 
+                is_jetson = _is_jetson_runtime()
                 extra_comfyui_args = _build_inference_comfyui_args(
                     low_memory_mode=low_memory_mode,
                     high_memory_mode=high_memory_mode,
@@ -263,6 +276,9 @@ def start_inference_process(
                     directml=directml,
                     vram_heavy_models=vram_heavy_models,
                     vram_reserve_gib=vram_reserve_gib,
+                    # Legacy Flash Attention crashes Xavier's GPU channel on long SDXL sequences.
+                    # Keep xFormers for attention while enabling validated Triton kitchen kernels.
+                    enable_triton_backend=is_jetson,
                 )
                 models_not_to_force_load = _build_models_not_to_force_load(
                     low_memory_mode=low_memory_mode,

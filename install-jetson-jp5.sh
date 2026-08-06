@@ -26,16 +26,14 @@ sdk_repository=https://github.com/Haidra-Org/horde-sdk.git
 sdk_commit=2fb40234105430449567265d3729887b86d21112
 sdk_patch=$script_dir/jetson-patches/horde-sdk-v0.20.7-python310.patch
 sdk_manifest=$script_dir/jetson-patches/horde-sdk-v0.20.7-python310.sha256
-comfy_kitchen_source=${JETSON_COMFY_KITCHEN_SOURCE:-$build_root/comfy-kitchen-jetson-torch21-v0.2.10}
-comfy_kitchen_repository=https://github.com/Comfy-Org/comfy-kitchen.git
-comfy_kitchen_commit=b9db5271b7c57354c19cfb51c4a7d8d715ae8b51
-comfy_kitchen_patch=$script_dir/jetson-patches/comfy-kitchen-v0.2.10-torch21.patch
-comfy_kitchen_manifest=$script_dir/jetson-patches/comfy-kitchen-v0.2.10-torch21.sha256
 checksum_file=$script_dir/jetson-wheel-checksums.sha256
 
 torch_wheel=$wheel_dir/torch-2.1.0a0+git7bcf7da-cp310-cp310-linux_aarch64.whl
 torchvision_wheel=$wheel_dir/torchvision-0.16.0+fbb4cc5-cp310-cp310-linux_aarch64.whl
 torchaudio_wheel=$wheel_dir/torchaudio-2.1.0+6ea1133-cp310-cp310-linux_aarch64.whl
+triton_wheel=$wheel_dir/triton-2.1.0+xavierjp5-cp310-cp310-linux_aarch64.whl
+comfy_kitchen_wheel=$wheel_dir/comfy_kitchen-0.2.26-py3-none-any.whl
+flash_attention_wheel=$wheel_dir/flash_attn_legacy-0.5.0+xavierjp5-cp310-cp310-linux_aarch64.whl
 
 test "$(uname -m)" = aarch64 || {
 	printf '%s\n' 'JetPack 5 support requires an aarch64 host.' >&2
@@ -62,8 +60,7 @@ for backport_file in \
 	"$engine_patch" "$engine_manifest" \
 	"$engine_base_replacement" \
 	"$model_reference_patch" "$model_reference_manifest" \
-	"$sdk_patch" "$sdk_manifest" \
-	"$comfy_kitchen_patch" "$comfy_kitchen_manifest"; do
+	"$sdk_patch" "$sdk_manifest"; do
 	test -f "$backport_file" || {
 		printf 'Backport file not found: %s\n' "$backport_file" >&2
 		exit 1
@@ -82,7 +79,10 @@ test -f "$xformers_sidecar" || {
 	exit 1
 }
 
-for wheel in "$torch_wheel" "$torchvision_wheel" "$torchaudio_wheel" "$xformers_wheel"; do
+for wheel in \
+	"$torch_wheel" "$torchvision_wheel" "$torchaudio_wheel" \
+	"$triton_wheel" "$comfy_kitchen_wheel" "$flash_attention_wheel" \
+	"$xformers_wheel"; do
 	test -f "$wheel" || {
 		printf 'Required Jetson wheel not found: %s\n' "$wheel" >&2
 		exit 1
@@ -175,8 +175,6 @@ ensure_patched_source horde-engine "$engine_repository" "$engine_source" "$engin
 ensure_patched_source horde-model-reference "$model_reference_repository" "$model_reference_source" \
 	"$model_reference_commit" "$model_reference_patch" "$model_reference_manifest"
 ensure_patched_source horde-sdk "$sdk_repository" "$sdk_source" "$sdk_commit" "$sdk_patch" "$sdk_manifest"
-ensure_patched_source comfy-kitchen "$comfy_kitchen_repository" "$comfy_kitchen_source" \
-	"$comfy_kitchen_commit" "$comfy_kitchen_patch" "$comfy_kitchen_manifest"
 
 SETUPTOOLS_SCM_PRETEND_VERSION=3.0.0 \
 	SETUPTOOLS_SCM_PRETEND_VERSION_FOR_HORDE_ENGINE=3.0.0 \
@@ -187,8 +185,8 @@ SETUPTOOLS_SCM_PRETEND_VERSION=5.1.1 \
 SETUPTOOLS_SCM_PRETEND_VERSION=0.20.7 \
 	SETUPTOOLS_SCM_PRETEND_VERSION_FOR_HORDE_SDK=0.20.7 \
 	"$python" -m pip install --no-deps "$sdk_source"
-COMFY_KITCHEN_BUILD_NO_CUDA=1 "$python" -m pip install --no-deps --force-reinstall "$comfy_kitchen_source"
-"$python" -m pip install --no-deps "$xformers_wheel"
+"$python" -m pip install --no-deps \
+	"$triton_wheel" "$comfy_kitchen_wheel" "$flash_attention_wheel" "$xformers_wheel"
 "$python" -m pip install --no-deps -e "$script_dir"
 
 "$python" -m pip check
@@ -201,9 +199,11 @@ import horde_safety
 import horde_sdk
 import hordelib
 import comfy_kitchen
+import flash_attn
 import torch
 import textual
 import textual_serve
+import triton
 import xformers
 
 assert torch.__version__ == "2.1.0a0+git7bcf7da", torch.__version__
@@ -215,12 +215,15 @@ assert metadata.version("horde-worker-regen") == "12.0.0"
 assert metadata.version("horde-engine") == "3.0.0"
 assert metadata.version("horde-sdk") == "0.20.7"
 assert metadata.version("horde-model-reference") == "5.1.1"
-assert metadata.version("comfy-kitchen") == "0.2.10"
+assert metadata.version("triton") == "2.1.0+xavierjp5"
+assert metadata.version("comfy-kitchen") == "0.2.26"
+assert metadata.version("flash-attn-legacy") == "0.5.0+xavierjp5"
 assert metadata.version("haidra-core") == "0.0.5"
 assert metadata.version("textual") == "8.1.1"
 
 backends = comfy_kitchen.list_backends()
 assert backends["eager"]["available"], backends
+assert backends["triton"]["available"], backends
 for device in ("cpu", "cuda"):
     x = torch.tensor([[1.0, 2.0, 3.0, 4.0]], dtype=torch.float32, device=device)
     qweight = torch.tensor([[0x98, 0xBA]], dtype=torch.uint8, device=device).view(torch.int8)
@@ -237,7 +240,9 @@ print("worker", metadata.version("horde-worker-regen"))
 print("engine", metadata.version("horde-engine"))
 print("sdk", metadata.version("horde-sdk"))
 print("model reference", metadata.version("horde-model-reference"))
+print("triton", triton.__version__)
 print("comfy kitchen", metadata.version("comfy-kitchen"))
+print("flash attention", metadata.version("flash-attn-legacy"), flash_attn.__name__)
 print("textual", metadata.version("textual"))
 print("horde imports", hordelib.__name__, horde_sdk.__name__, horde_safety.__name__, horde_model_reference.__name__)
 PY

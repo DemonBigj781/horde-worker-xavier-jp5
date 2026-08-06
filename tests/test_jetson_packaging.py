@@ -33,6 +33,9 @@ def test_jetson_installer_pins_xavier_runtime() -> None:
     assert "torch-2.1.0a0+git7bcf7da-cp310-cp310-linux_aarch64.whl" in installer
     assert "torchvision-0.16.0+fbb4cc5-cp310-cp310-linux_aarch64.whl" in installer
     assert "torchaudio-2.1.0+6ea1133-cp310-cp310-linux_aarch64.whl" in installer
+    assert "triton-2.1.0+xavierjp5-cp310-cp310-linux_aarch64.whl" in installer
+    assert "comfy_kitchen-0.2.26-py3-none-any.whl" in installer
+    assert "flash_attn_legacy-0.5.0+xavierjp5-cp310-cp310-linux_aarch64.whl" in installer
     assert "xformers-0.0.23+e1b36f7.d*" in installer
     assert '"horde_engine>=3.0.0,<4.0.0"' in pyproject
     assert "https://github.com/Haidra-Org/hordelib.git" in installer
@@ -43,10 +46,8 @@ def test_jetson_installer_pins_xavier_runtime() -> None:
     assert "horde-model-reference-v5.1.1-python310.patch" in installer
     assert "2fb40234105430449567265d3729887b86d21112" in installer
     assert "horde-sdk-v0.20.7-python310.patch" in installer
-    assert "b9db5271b7c57354c19cfb51c4a7d8d715ae8b51" in installer
-    assert "comfy-kitchen-v0.2.10-torch21.patch" in installer
-    assert "COMFY_KITCHEN_BUILD_NO_CUDA=1" in installer
     assert 'backends["eager"]["available"]' in installer
+    assert 'backends["triton"]["available"]' in installer
     assert 'for device in ("cpu", "cuda")' in installer
     assert 'git -C "$source" apply --ignore-space-change --whitespace=nowarn --check' in installer
     assert 'git -C "$source" ls-files --others --exclude-standard' in installer
@@ -57,7 +58,9 @@ def test_jetson_installer_pins_xavier_runtime() -> None:
     assert 'metadata.version("horde-worker-regen") == "12.0.0"' in installer
     assert 'metadata.version("horde-sdk") == "0.20.7"' in installer
     assert 'metadata.version("horde-model-reference") == "5.1.1"' in installer
-    assert 'metadata.version("comfy-kitchen") == "0.2.10"' in installer
+    assert 'metadata.version("triton") == "2.1.0+xavierjp5"' in installer
+    assert 'metadata.version("comfy-kitchen") == "0.2.26"' in installer
+    assert 'metadata.version("flash-attn-legacy") == "0.5.0+xavierjp5"' in installer
 
 
 def test_jetson_installer_assets_are_bundled_with_patch_directory() -> None:
@@ -93,6 +96,9 @@ def test_jetson_installer_rejects_wrong_platform_and_unverified_wheels() -> None
     assert "torch-2.1.0a0+git7bcf7da" in checksums
     assert "torchvision-0.16.0+fbb4cc5" in checksums
     assert "torchaudio-2.1.0+6ea1133" in checksums
+    assert "triton-2.1.0+xavierjp5" in checksums
+    assert "comfy_kitchen-0.2.26" in checksums
+    assert "flash_attn_legacy-0.5.0+xavierjp5" in checksums
     assert "xformers-0.0.23+e1b36f7.d20260803" in checksums
 
 
