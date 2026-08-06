@@ -334,6 +334,8 @@ class ProcessLifecycleManager:
                 "dry_run_skip_inference": bridge_data.dry_run_skip_inference,
                 "dry_run_inference_delay": bridge_data.dry_run_inference_delay,
                 "gpu_sampling_lease": self._gpu_sampling_lease if self._gpu_sampling_lease_enabled else None,
+                "vram_reserve_gib": bridge_data.minimum_available_ram_gib,
+                "serialize_aux_model_downloads": self._max_inference_processes > 1,
             },
         )
         process.start()
@@ -441,7 +443,11 @@ class ProcessLifecycleManager:
                 logger.debug(f"Process {process_info.process_id} control channel vanished")
         try:
             process_info.mp_process.join(timeout=1)
-            process_info.mp_process.kill()
+            if process_info.mp_process.is_alive():
+                process_info.mp_process.kill()
+                process_info.mp_process.join(timeout=5)
+                if process_info.mp_process.is_alive():
+                    logger.error(f"Failed to reap inference process {process_info.process_id} after killing it")
         except Exception as e:
             logger.error(f"Failed to kill process {process_info.process_id}: {e}")
 
@@ -487,18 +493,24 @@ class ProcessLifecycleManager:
             self._safety_processes_should_be_replaced = False
             self._num_process_recoveries += 1
 
-    def _replace_inference_process(self, process_info: HordeProcessInfo) -> None:
-        """Replaces an inference process (for whatever reason; probably because it crashed)."""
+    def _replace_inference_process(
+        self,
+        process_info: HordeProcessInfo,
+        *,
+        fault_referenced_job: bool = True,
+    ) -> None:
+        """Replace an inference process and optionally fault its referenced job."""
         bridge_data = self._runtime_config.bridge_data
         logger.debug(f"Replacing {process_info}")
         job_to_remove = None
-        for process in self._process_map.values():
-            if (
-                process.last_job_referenced is not None
-                and process.last_job_referenced in self._job_tracker.jobs_lookup
-            ):
-                job_to_remove = process.last_job_referenced
-                break
+        if fault_referenced_job:
+            for process in self._process_map.values():
+                if (
+                    process.last_job_referenced is not None
+                    and process.last_job_referenced in self._job_tracker.jobs_lookup
+                ):
+                    job_to_remove = process.last_job_referenced
+                    break
 
         if process_info.last_process_state == HordeProcessState.INFERENCE_STARTING:
             try:

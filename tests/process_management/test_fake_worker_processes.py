@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import uuid
+from typing import TypeVar
 from unittest.mock import Mock
 
 from horde_sdk.ai_horde_api import GENERATION_STATE
@@ -33,6 +34,9 @@ from horde_worker_regen.process_management.messages import (
 from tests.process_management.conftest import make_job_pop_response
 
 
+T = TypeVar("T")
+
+
 class RecordingQueue:
     """Captures every message a fake process emits, in order."""
 
@@ -44,7 +48,7 @@ class RecordingQueue:
         """Record a message."""
         self.messages.append(message)
 
-    def of_type[T](self, message_type: type[T]) -> list[T]:
+    def of_type(self, message_type: type[T]) -> list[T]:
         """Return all recorded messages of the given type, with static type preservation."""
         return [m for m in self.messages if isinstance(m, message_type)]
 

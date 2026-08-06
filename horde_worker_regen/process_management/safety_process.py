@@ -17,7 +17,7 @@ try:
 except Exception:
     from multiprocessing.connection import Connection  # type: ignore
 from multiprocessing.synchronize import Lock
-from typing import override
+from typing_extensions import override
 
 import PIL
 import PIL.Image

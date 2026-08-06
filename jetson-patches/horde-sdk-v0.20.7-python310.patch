@@ -1,0 +1,694 @@
+diff --git a/horde_sdk/ai_horde_api/apimodels/alchemy/async_.py b/horde_sdk/ai_horde_api/apimodels/alchemy/async_.py
+index f95b650..b015121 100644
+--- a/horde_sdk/ai_horde_api/apimodels/alchemy/async_.py
++++ b/horde_sdk/ai_horde_api/apimodels/alchemy/async_.py
+@@ -1,6 +1,8 @@
+ import base64
+ import urllib.parse
+-from typing import Any, override
++from typing import Any
++
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import field_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/alchemy/pop.py b/horde_sdk/ai_horde_api/apimodels/alchemy/pop.py
+index 69c57dc..f22ff47 100644
+--- a/horde_sdk/ai_horde_api/apimodels/alchemy/pop.py
++++ b/horde_sdk/ai_horde_api/apimodels/alchemy/pop.py
+@@ -1,6 +1,6 @@
+ from __future__ import annotations
+ 
+-from typing import override
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import Field, field_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/alchemy/status.py b/horde_sdk/ai_horde_api/apimodels/alchemy/status.py
+index c936e87..7976135 100644
+--- a/horde_sdk/ai_horde_api/apimodels/alchemy/status.py
++++ b/horde_sdk/ai_horde_api/apimodels/alchemy/status.py
+@@ -1,4 +1,4 @@
+-from typing import override
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import field_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/alchemy/submit.py b/horde_sdk/ai_horde_api/apimodels/alchemy/submit.py
+index 3d443f7..3574808 100644
+--- a/horde_sdk/ai_horde_api/apimodels/alchemy/submit.py
++++ b/horde_sdk/ai_horde_api/apimodels/alchemy/submit.py
+@@ -1,4 +1,4 @@
+-from typing import override
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import model_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/base.py b/horde_sdk/ai_horde_api/apimodels/base.py
+index 2bc2e53..795f5ff 100644
+--- a/horde_sdk/ai_horde_api/apimodels/base.py
++++ b/horde_sdk/ai_horde_api/apimodels/base.py
+@@ -5,7 +5,9 @@ from __future__ import annotations
+ import os
+ import random
+ import uuid
+-from typing import Any, override
++from typing import Any
++
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import ConfigDict, Field, field_validator, model_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/collections.py b/horde_sdk/ai_horde_api/apimodels/collections.py
+index 4d2e9b1..109c259 100644
+--- a/horde_sdk/ai_horde_api/apimodels/collections.py
++++ b/horde_sdk/ai_horde_api/apimodels/collections.py
+@@ -1,4 +1,6 @@
+-from typing import Literal, override
++from typing import Literal
++
++from typing_extensions import override
+ 
+ from pydantic import Field
+ 
+diff --git a/horde_sdk/ai_horde_api/apimodels/documents.py b/horde_sdk/ai_horde_api/apimodels/documents.py
+index 4686c64..330c97c 100644
+--- a/horde_sdk/ai_horde_api/apimodels/documents.py
++++ b/horde_sdk/ai_horde_api/apimodels/documents.py
+@@ -1,4 +1,4 @@
+-from typing import override
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import field_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/filters.py b/horde_sdk/ai_horde_api/apimodels/filters.py
+index 68bd2a3..bdb7162 100644
+--- a/horde_sdk/ai_horde_api/apimodels/filters.py
++++ b/horde_sdk/ai_horde_api/apimodels/filters.py
+@@ -1,4 +1,6 @@
+-from typing import Any, override
++from typing import Any
++
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import Field, model_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/find_user.py b/horde_sdk/ai_horde_api/apimodels/find_user.py
+index c2a527b..735495c 100644
+--- a/horde_sdk/ai_horde_api/apimodels/find_user.py
++++ b/horde_sdk/ai_horde_api/apimodels/find_user.py
+@@ -1,4 +1,4 @@
+-from typing import override
++from typing_extensions import override
+ 
+ from horde_sdk.ai_horde_api.apimodels.base import BaseAIHordeRequest
+ from horde_sdk.ai_horde_api.apimodels.users import UserDetailsResponse
+diff --git a/horde_sdk/ai_horde_api/apimodels/generate/async_.py b/horde_sdk/ai_horde_api/apimodels/generate/async_.py
+index bcabf05..fac5347 100644
+--- a/horde_sdk/ai_horde_api/apimodels/generate/async_.py
++++ b/horde_sdk/ai_horde_api/apimodels/generate/async_.py
+@@ -1,6 +1,6 @@
+ from __future__ import annotations
+ 
+-from typing import override
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import AliasChoices, Field, field_validator, model_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/generate/check.py b/horde_sdk/ai_horde_api/apimodels/generate/check.py
+index d6d21c5..f6c24bc 100644
+--- a/horde_sdk/ai_horde_api/apimodels/generate/check.py
++++ b/horde_sdk/ai_horde_api/apimodels/generate/check.py
+@@ -1,4 +1,4 @@
+-from typing import override
++from typing_extensions import override
+ 
+ from loguru import logger
+ 
+diff --git a/horde_sdk/ai_horde_api/apimodels/generate/pop.py b/horde_sdk/ai_horde_api/apimodels/generate/pop.py
+index b32a111..f3f3aa0 100644
+--- a/horde_sdk/ai_horde_api/apimodels/generate/pop.py
++++ b/horde_sdk/ai_horde_api/apimodels/generate/pop.py
+@@ -2,7 +2,7 @@ from __future__ import annotations
+ 
+ import asyncio
+ import uuid
+-from typing import override
++from typing_extensions import override
+ from urllib.parse import urlparse
+ 
+ import aiohttp
+diff --git a/horde_sdk/ai_horde_api/apimodels/generate/rate.py b/horde_sdk/ai_horde_api/apimodels/generate/rate.py
+index b39c625..18e097e 100644
+--- a/horde_sdk/ai_horde_api/apimodels/generate/rate.py
++++ b/horde_sdk/ai_horde_api/apimodels/generate/rate.py
+@@ -1,4 +1,4 @@
+-from typing import override
++from typing_extensions import override
+ 
+ from pydantic import Field
+ 
+diff --git a/horde_sdk/ai_horde_api/apimodels/generate/status.py b/horde_sdk/ai_horde_api/apimodels/generate/status.py
+index 963e900..fae1c90 100644
+--- a/horde_sdk/ai_horde_api/apimodels/generate/status.py
++++ b/horde_sdk/ai_horde_api/apimodels/generate/status.py
+@@ -1,5 +1,5 @@
+ import uuid
+-from typing import override
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import Field, field_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/generate/submit.py b/horde_sdk/ai_horde_api/apimodels/generate/submit.py
+index 0f91a6c..3add205 100644
+--- a/horde_sdk/ai_horde_api/apimodels/generate/submit.py
++++ b/horde_sdk/ai_horde_api/apimodels/generate/submit.py
+@@ -1,6 +1,8 @@
+ from __future__ import annotations
+ 
+-from typing import Literal, override
++from typing import Literal
++
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import model_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/generate/text/async_.py b/horde_sdk/ai_horde_api/apimodels/generate/text/async_.py
+index 215933e..cadbc36 100644
+--- a/horde_sdk/ai_horde_api/apimodels/generate/text/async_.py
++++ b/horde_sdk/ai_horde_api/apimodels/generate/text/async_.py
+@@ -1,6 +1,6 @@
+ from __future__ import annotations
+ 
+-from typing import override
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import Field, model_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/generate/text/pop.py b/horde_sdk/ai_horde_api/apimodels/generate/text/pop.py
+index 6d02a6b..4f24c21 100644
+--- a/horde_sdk/ai_horde_api/apimodels/generate/text/pop.py
++++ b/horde_sdk/ai_horde_api/apimodels/generate/text/pop.py
+@@ -1,7 +1,7 @@
+ from __future__ import annotations
+ 
+ import uuid
+-from typing import override
++from typing_extensions import override
+ 
+ import aiohttp
+ from loguru import logger
+diff --git a/horde_sdk/ai_horde_api/apimodels/generate/text/status.py b/horde_sdk/ai_horde_api/apimodels/generate/text/status.py
+index 94b159f..81664ac 100644
+--- a/horde_sdk/ai_horde_api/apimodels/generate/text/status.py
++++ b/horde_sdk/ai_horde_api/apimodels/generate/text/status.py
+@@ -1,5 +1,5 @@
+ import uuid
+-from typing import override
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import Field, field_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/generate/text/submit.py b/horde_sdk/ai_horde_api/apimodels/generate/text/submit.py
+index 6ad5c2f..6c89d85 100644
+--- a/horde_sdk/ai_horde_api/apimodels/generate/text/submit.py
++++ b/horde_sdk/ai_horde_api/apimodels/generate/text/submit.py
+@@ -1,6 +1,6 @@
+ from __future__ import annotations
+ 
+-from typing import override
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import model_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/kudos.py b/horde_sdk/ai_horde_api/apimodels/kudos.py
+index e356543..b2a6dcb 100644
+--- a/horde_sdk/ai_horde_api/apimodels/kudos.py
++++ b/horde_sdk/ai_horde_api/apimodels/kudos.py
+@@ -1,4 +1,4 @@
+-from typing import override
++from typing_extensions import override
+ 
+ from horde_sdk.ai_horde_api.apimodels.base import BaseAIHordeRequest
+ from horde_sdk.ai_horde_api.endpoints import AI_HORDE_API_ENDPOINT_SUBPATH
+diff --git a/horde_sdk/ai_horde_api/apimodels/operations.py b/horde_sdk/ai_horde_api/apimodels/operations.py
+index a05ae2d..106ec35 100644
+--- a/horde_sdk/ai_horde_api/apimodels/operations.py
++++ b/horde_sdk/ai_horde_api/apimodels/operations.py
+@@ -1,6 +1,6 @@
+ """Definitions for the admin operations."""
+ 
+-from typing import override
++from typing_extensions import override
+ 
+ from horde_sdk.ai_horde_api.apimodels.base import BaseAIHordeRequest
+ from horde_sdk.ai_horde_api.endpoints import AI_HORDE_API_ENDPOINT_SUBPATH
+diff --git a/horde_sdk/ai_horde_api/apimodels/sharedkeys.py b/horde_sdk/ai_horde_api/apimodels/sharedkeys.py
+index fdc3bb1..147158f 100644
+--- a/horde_sdk/ai_horde_api/apimodels/sharedkeys.py
++++ b/horde_sdk/ai_horde_api/apimodels/sharedkeys.py
+@@ -1,4 +1,4 @@
+-from typing import override
++from typing_extensions import override
+ 
+ from pydantic import Field, field_validator
+ 
+diff --git a/horde_sdk/ai_horde_api/apimodels/stats.py b/horde_sdk/ai_horde_api/apimodels/stats.py
+index eaccdc2..b87ad15 100644
+--- a/horde_sdk/ai_horde_api/apimodels/stats.py
++++ b/horde_sdk/ai_horde_api/apimodels/stats.py
+@@ -1,5 +1,5 @@
+ from enum import auto
+-from typing import override
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import Field, field_validator
+diff --git a/horde_sdk/ai_horde_api/apimodels/status.py b/horde_sdk/ai_horde_api/apimodels/status.py
+index 245c040..9df96ab 100644
+--- a/horde_sdk/ai_horde_api/apimodels/status.py
++++ b/horde_sdk/ai_horde_api/apimodels/status.py
+@@ -1,5 +1,5 @@
+ from collections.abc import Iterator
+-from typing import override
++from typing_extensions import override
+ 
+ from pydantic import Field
+ 
+diff --git a/horde_sdk/ai_horde_api/apimodels/styles.py b/horde_sdk/ai_horde_api/apimodels/styles.py
+index a110675..4f80d6f 100644
+--- a/horde_sdk/ai_horde_api/apimodels/styles.py
++++ b/horde_sdk/ai_horde_api/apimodels/styles.py
+@@ -1,5 +1,7 @@
+ from enum import auto
+-from typing import Literal, override
++from typing import Literal
++
++from typing_extensions import override
+ 
+ from pydantic import Field
+ from strenum import StrEnum
+diff --git a/horde_sdk/ai_horde_api/apimodels/teams.py b/horde_sdk/ai_horde_api/apimodels/teams.py
+index e230bb7..d0cbe88 100644
+--- a/horde_sdk/ai_horde_api/apimodels/teams.py
++++ b/horde_sdk/ai_horde_api/apimodels/teams.py
+@@ -1,4 +1,4 @@
+-from typing import override
++from typing_extensions import override
+ 
+ from pydantic import Field
+ 
+diff --git a/horde_sdk/ai_horde_api/apimodels/users.py b/horde_sdk/ai_horde_api/apimodels/users.py
+index cf2bf99..6d380e5 100644
+--- a/horde_sdk/ai_horde_api/apimodels/users.py
++++ b/horde_sdk/ai_horde_api/apimodels/users.py
+@@ -1,5 +1,5 @@
+ from datetime import datetime
+-from typing import override
++from typing_extensions import override
+ 
+ from pydantic import Field
+ 
+diff --git a/horde_sdk/ai_horde_api/apimodels/workers/messages.py b/horde_sdk/ai_horde_api/apimodels/workers/messages.py
+index f3f2e19..0062893 100644
+--- a/horde_sdk/ai_horde_api/apimodels/workers/messages.py
++++ b/horde_sdk/ai_horde_api/apimodels/workers/messages.py
+@@ -1,4 +1,6 @@
+-from typing import Literal, override
++from typing import Literal
++
++from typing_extensions import override
+ 
+ from pydantic import Field
+ 
+diff --git a/horde_sdk/ai_horde_api/apimodels/workers/workers.py b/horde_sdk/ai_horde_api/apimodels/workers/workers.py
+index e3ede84..1421037 100644
+--- a/horde_sdk/ai_horde_api/apimodels/workers/workers.py
++++ b/horde_sdk/ai_horde_api/apimodels/workers/workers.py
+@@ -1,5 +1,5 @@
+ from collections.abc import Iterator
+-from typing import override
++from typing_extensions import override
+ 
+ from pydantic import AliasChoices, Field
+ 
+diff --git a/horde_sdk/ai_horde_api/fields.py b/horde_sdk/ai_horde_api/fields.py
+index 242c740..bb38019 100644
+--- a/horde_sdk/ai_horde_api/fields.py
++++ b/horde_sdk/ai_horde_api/fields.py
+@@ -5,7 +5,9 @@ by providing additional type hints for the request and response payloads and val
+ """
+ 
+ import uuid
+-from typing import Any, ClassVar, override
++from typing import Any, ClassVar
++
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import ConfigDict, RootModel, field_validator, model_serializer
+diff --git a/horde_sdk/ai_horde_api/model_records.py b/horde_sdk/ai_horde_api/model_records.py
+index bd60d21..5f779ea 100644
+--- a/horde_sdk/ai_horde_api/model_records.py
++++ b/horde_sdk/ai_horde_api/model_records.py
+@@ -1,4 +1,4 @@
+-from typing import override
++from typing_extensions import override
+ 
+ from horde_model_reference.model_reference_records import GenericModelRecord
+ 
+diff --git a/horde_sdk/backend_parsing/object_models.py b/horde_sdk/backend_parsing/object_models.py
+index b4b6aa3..85925bd 100644
+--- a/horde_sdk/backend_parsing/object_models.py
++++ b/horde_sdk/backend_parsing/object_models.py
+@@ -1,4 +1,5 @@
+ from abc import ABC
++from typing import Generic
+ 
+ from strenum import StrEnum
+ from typing_extensions import TypeVar
+@@ -22,7 +23,7 @@ BackendControlnetsTypeVar = TypeVar("BackendControlnetsTypeVar", bound=StrEnum)
+ MappingOutputTypeVar = TypeVar("MappingOutputTypeVar", bound=StrEnum)
+ 
+ 
+-class BackendValuesMapper[SDKParameterSetTypeVar: CompositeParametersBase](ABC):
++class BackendValuesMapper(ABC, Generic[SDKParameterSetTypeVar]):
+     """Base class for all backend values mappers.
+ 
+     Value mappers provide a way to convert between the backend representations and the SDK representations of
+@@ -79,12 +80,9 @@ class BackendValuesMapper[SDKParameterSetTypeVar: CompositeParametersBase](ABC):
+         return False
+ 
+ 
+-class ImageBackendValuesMapper[
+-    BackendSamplersTypeVar: StrEnum,
+-    BackendSchedulersTypeVar: StrEnum,
+-    BackendControlnetsTypeVar: StrEnum,
+-](
++class ImageBackendValuesMapper(
+     BackendValuesMapper[ImageGenerationParametersTemplate],
++    Generic[BackendSamplersTypeVar, BackendSchedulersTypeVar, BackendControlnetsTypeVar],
+ ):
+     """Base class for all image backend values mappers.
+ 
+diff --git a/horde_sdk/generation_parameters/alchemy/object_models.py b/horde_sdk/generation_parameters/alchemy/object_models.py
+index 1b30842..58ec310 100644
+--- a/horde_sdk/generation_parameters/alchemy/object_models.py
++++ b/horde_sdk/generation_parameters/alchemy/object_models.py
+@@ -2,7 +2,9 @@ from __future__ import annotations
+ 
+ from collections.abc import Callable, Mapping
+ from dataclasses import dataclass
+-from typing import Literal, override
++from typing import Literal
++
++from typing_extensions import override
+ 
+ from pydantic import Field
+ 
+diff --git a/horde_sdk/generation_parameters/image/object_models.py b/horde_sdk/generation_parameters/image/object_models.py
+index c5fbfc9..ef15428 100644
+--- a/horde_sdk/generation_parameters/image/object_models.py
++++ b/horde_sdk/generation_parameters/image/object_models.py
+@@ -2,7 +2,7 @@ from __future__ import annotations
+ 
+ from collections.abc import Sequence
+ from pathlib import Path
+-from typing import override
++from typing_extensions import override
+ 
+ from horde_model_reference.meta_consts import KNOWN_IMAGE_GENERATION_BASELINE
+ from pydantic import ConfigDict, Field, field_validator, model_validator
+diff --git a/horde_sdk/generation_parameters/text/object_models.py b/horde_sdk/generation_parameters/text/object_models.py
+index 756fe5e..0be7e58 100644
+--- a/horde_sdk/generation_parameters/text/object_models.py
++++ b/horde_sdk/generation_parameters/text/object_models.py
+@@ -2,7 +2,7 @@ from __future__ import annotations
+ 
+ from collections.abc import Sequence
+ from enum import auto
+-from typing import Self, override
++from typing_extensions import Self, override
+ 
+ from pydantic import Field
+ from strenum import StrEnum
+diff --git a/horde_sdk/generation_parameters/utils.py b/horde_sdk/generation_parameters/utils.py
+index c20df60..b922cd1 100644
+--- a/horde_sdk/generation_parameters/utils.py
++++ b/horde_sdk/generation_parameters/utils.py
+@@ -8,7 +8,7 @@ from collections.abc import Callable, Collection, Mapping, Sequence
+ from dataclasses import dataclass
+ from enum import Enum
+ from pathlib import Path
+-from typing import Final, TypeVar
++from typing import Final, Generic, TypeVar
+ from uuid import UUID
+ 
+ from pydantic import BaseModel
+@@ -25,7 +25,7 @@ TemplateT = TypeVar("TemplateT", bound=BaseModel)
+ 
+ 
+ @dataclass(frozen=True)
+-class TemplateFingerprintSnapshot[TemplateT: BaseModel]:
++class TemplateFingerprintSnapshot(Generic[TemplateT]):
+     """Snapshot containing the finalized template payload and its fingerprint."""
+ 
+     template: TemplateT
+@@ -34,14 +34,14 @@ class TemplateFingerprintSnapshot[TemplateT: BaseModel]:
+ 
+ 
+ @dataclass(frozen=True)
+-class TemplateFinalization[TemplateT: BaseModel]:
++class TemplateFinalization(Generic[TemplateT]):
+     """Snapshot produced when applying overrides to a template."""
+ 
+     template: TemplateT
+     payload: dict[str, object]
+ 
+ 
+-def apply_template_overrides[TemplateT: BaseModel](
++def apply_template_overrides(
+     template: TemplateT,
+     *,
+     overrides: Mapping[str, object] | None = None,
+@@ -54,7 +54,7 @@ def apply_template_overrides[TemplateT: BaseModel](
+     return TemplateFinalization(template=updated, payload=payload)
+ 
+ 
+-def finalize_template_for_parameters[TemplateT: BaseModel](
++def finalize_template_for_parameters(
+     template: TemplateT,
+     *,
+     overrides: Mapping[str, object] | None = None,
+diff --git a/horde_sdk/generic_api/apimodels.py b/horde_sdk/generic_api/apimodels.py
+index 25d0c74..ed4a84d 100644
+--- a/horde_sdk/generic_api/apimodels.py
++++ b/horde_sdk/generic_api/apimodels.py
+@@ -6,7 +6,9 @@ import abc
+ import base64
+ import time
+ import uuid
+-from typing import Any, TypeVar, override
++from typing import Any, TypeVar
++
++from typing_extensions import override
+ 
+ import aiohttp
+ from loguru import logger
+diff --git a/horde_sdk/generic_api/decoration.py b/horde_sdk/generic_api/decoration.py
+index 6493e86..fdeaf12 100644
+--- a/horde_sdk/generic_api/decoration.py
++++ b/horde_sdk/generic_api/decoration.py
+@@ -3,7 +3,7 @@ from typing import Any, TypeVar
+ T = TypeVar("T")
+ 
+ 
+-def Unhashable[T](cls: type[T]) -> type[T]:
++def Unhashable(cls: type[T]) -> type[T]:
+     """Make a class unhashable.
+ 
+     Args:
+@@ -33,7 +33,7 @@ def is_unhashable(obj: type | Any) -> bool:  # noqa: ANN401
+     return getattr(cls, "_unhashable", False)
+ 
+ 
+-def Unequatable[T](cls: type[T]) -> type[T]:
++def Unequatable(cls: type[T]) -> type[T]:
+     """Mark a class as unequatable.
+ 
+     Args:
+diff --git a/horde_sdk/generic_api/generic_clients.py b/horde_sdk/generic_api/generic_clients.py
+index b130051..a30e16f 100644
+--- a/horde_sdk/generic_api/generic_clients.py
++++ b/horde_sdk/generic_api/generic_clients.py
+@@ -8,7 +8,9 @@ import os
+ import time
+ from abc import ABC
+ from ssl import SSLContext
+-from typing import Any, TypeVar, override
++from typing import Any, TypeVar
++
++from typing_extensions import override
+ 
+ import aiohttp
+ import logfire
+diff --git a/horde_sdk/ratings_api/apimodels.py b/horde_sdk/ratings_api/apimodels.py
+index 41ab2d8..cd5d5f2 100644
+--- a/horde_sdk/ratings_api/apimodels.py
++++ b/horde_sdk/ratings_api/apimodels.py
+@@ -2,7 +2,7 @@
+ 
+ import uuid
+ from enum import auto
+-from typing import override
++from typing_extensions import override
+ 
+ from pydantic import BaseModel, Field
+ from strenum import StrEnum
+diff --git a/horde_sdk/worker/dispatch/ai_horde/pop_strategy.py b/horde_sdk/worker/dispatch/ai_horde/pop_strategy.py
+index f917f31..aef2a9b 100644
+--- a/horde_sdk/worker/dispatch/ai_horde/pop_strategy.py
++++ b/horde_sdk/worker/dispatch/ai_horde/pop_strategy.py
+@@ -1,4 +1,4 @@
+-from typing import override
++from typing_extensions import override
+ 
+ from horde_model_reference.model_reference_manager import ModelReferenceManager
+ 
+diff --git a/horde_sdk/worker/dispatch/pop_strategy.py b/horde_sdk/worker/dispatch/pop_strategy.py
+index 1ff8cc6..ea49977 100644
+--- a/horde_sdk/worker/dispatch/pop_strategy.py
++++ b/horde_sdk/worker/dispatch/pop_strategy.py
+@@ -1,5 +1,5 @@
+ from abc import ABC, abstractmethod
+-from typing import Any
++from typing import Any, Generic, TypeVar
+ 
+ from horde_sdk import KNOWN_DISPATCH_SOURCE
+ from horde_sdk.consts import WORKER_TYPE
+@@ -7,8 +7,11 @@ from horde_sdk.generation_parameters.generic import CompositeParametersBase
+ from horde_sdk.worker.generations_base import HordeSingleGeneration
+ from horde_sdk.worker.job_base import HordeWorkerJob
+ 
++SingleGenerationTypeVar = TypeVar("SingleGenerationTypeVar", bound=HordeSingleGeneration[Any])
++ComposedParameterSetTypeVar = TypeVar("ComposedParameterSetTypeVar", bound=CompositeParametersBase)
+ 
+-class JobPopStrategyGeneric[SingleGenerationTypeVar, ComposedParameterSetTypeVar](ABC):
++
++class JobPopStrategyGeneric(ABC, Generic[SingleGenerationTypeVar, ComposedParameterSetTypeVar]):
+     """Abstract base class for job pop strategies."""
+ 
+     _default_job_pop_time_spacing: float = 1.0
+diff --git a/horde_sdk/worker/feature_flags.py b/horde_sdk/worker/feature_flags.py
+index fe5718f..52c8491 100644
+--- a/horde_sdk/worker/feature_flags.py
++++ b/horde_sdk/worker/feature_flags.py
+@@ -1,6 +1,8 @@
+ from abc import ABC, abstractmethod
+ from enum import auto
+-from typing import TypeVar, override
++from typing import Generic, TypeVar
++
++from typing_extensions import override
+ 
+ from horde_model_reference.meta_consts import KNOWN_IMAGE_GENERATION_BASELINE
+ from loguru import logger
+@@ -43,7 +45,7 @@ class RESULT_RETURN_METHOD(StrEnum):
+     """Can write to the local filesystem for jobs originating locally or within a closed environment."""
+ 
+ 
+-class WorkerFeatureFlags[ReasonTypeVar: str](ABC, BaseModel):
++class WorkerFeatureFlags(ABC, BaseModel, Generic[ReasonTypeVar]):
+     """Feature flags for a worker."""
+ 
+     model_config = get_default_frozen_model_config_dict()
+diff --git a/horde_sdk/worker/generations.py b/horde_sdk/worker/generations.py
+index e94132c..1ceb838 100644
+--- a/horde_sdk/worker/generations.py
++++ b/horde_sdk/worker/generations.py
+@@ -1,7 +1,9 @@
+ from __future__ import annotations
+ 
+ from collections.abc import Mapping, Sequence
+-from typing import TypedDict, override
++from typing import TypedDict
++
++from typing_extensions import override
+ 
+ from loguru import logger
+ 
+diff --git a/horde_sdk/worker/generations_base.py b/horde_sdk/worker/generations_base.py
+index 0afef4e..24e2d88 100644
+--- a/horde_sdk/worker/generations_base.py
++++ b/horde_sdk/worker/generations_base.py
+@@ -7,7 +7,7 @@ from abc import ABC
+ from collections import OrderedDict
+ from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
+ from enum import auto
+-from typing import TypeVar
++from typing import Generic, TypeVar
+ 
+ from loguru import logger
+ from strenum import StrEnum
+@@ -56,7 +56,7 @@ class InputConstraintType(StrEnum):
+     """Specific class type input only."""
+ 
+ 
+-class HordeSingleGeneration[GenerationResultTypeVar](ABC):
++class HordeSingleGeneration(ABC, Generic[GenerationResultTypeVar]):
+     """Base class for tracking a generation. Generations are specific instances of inference or computation.
+ 
+     This should not be confused with specific results, which are the output of a generation. For example, a generation
+diff --git a/horde_sdk/worker/job_base.py b/horde_sdk/worker/job_base.py
+index f6d22c5..031cf9f 100644
+--- a/horde_sdk/worker/job_base.py
++++ b/horde_sdk/worker/job_base.py
+@@ -6,7 +6,7 @@ import uuid
+ from abc import ABC, abstractmethod
+ from collections.abc import Sequence
+ from enum import auto
+-from typing import Any, TypeVar
++from typing import Any, Generic, TypeVar
+ 
+ from loguru import logger
+ from pydantic import BaseModel, Field
+@@ -93,12 +93,7 @@ class HordeWorkerJobConfig(BaseModel):
+     )
+ 
+ 
+-class HordeWorkerJob[
+-    SingleGenerationTypeVar: HordeSingleGeneration[Any],
+-    ComposedParameterSetTypeVar: CompositeParametersBase,
+-](
+-    ABC,
+-):
++class HordeWorkerJob(ABC, Generic[SingleGenerationTypeVar, ComposedParameterSetTypeVar]):
+     """Base class for all worker jobs.
+ 
+     Jobs wrap an underlying generation parameter set with meta-information about the job, including
+diff --git a/horde_sdk/worker/jobs.py b/horde_sdk/worker/jobs.py
+index 087c5f0..e6093e5 100644
+--- a/horde_sdk/worker/jobs.py
++++ b/horde_sdk/worker/jobs.py
+@@ -1,7 +1,7 @@
+ from __future__ import annotations
+ 
+ from collections.abc import Sequence
+-from typing import override
++from typing_extensions import override
+ 
+ from horde_sdk.consts import ID_TYPES, WORKER_TYPE, HTTPMethod
+ from horde_sdk.generation_parameters import (
+diff --git a/pyproject.toml b/pyproject.toml
+index bfa549c..f9eb51e 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -10,7 +10,7 @@ authors = [
+     {name = "db0", email = "mail@dbzer0.com"},
+ ]
+ readme = "README.md"
+-requires-python = ">=3.12"
++requires-python = ">=3.10"
+ dynamic=["version"]
+ license = {file = "LICENSE"}
+ classifiers = [

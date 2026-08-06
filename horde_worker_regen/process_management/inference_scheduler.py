@@ -242,12 +242,15 @@ class InferenceScheduler:
                 return False
 
             if (
-                available_process.last_process_state != HordeProcessState.WAITING_FOR_JOB
-                and available_process.loaded_horde_model_name is not None
+                available_process.loaded_horde_model_name is not None
+                and available_process.loaded_horde_model_name != job.model
                 and bridge_data.cycle_process_on_model_change
                 and not self._state.shutting_down
             ):
-                self._process_lifecycle._replace_inference_process(available_process)
+                self._process_lifecycle._replace_inference_process(
+                    available_process,
+                    fault_referenced_job=False,
+                )
                 return False
 
             num_preloading_processes = self._process_map.num_preloading_processes()

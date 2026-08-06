@@ -104,3 +104,57 @@ class TestControlLoopTick:
 
         assert job in process_manager._job_tracker.jobs_in_progress
         inf_proc.pipe_connection.send.assert_called()  # type: ignore[attr-defined]
+
+
+class TestMemoryPressureRecovery:
+    """Tests for Xavier unified-memory process reclamation."""
+
+    @staticmethod
+    def _make_manager(*, jobs_pending_submit: tuple[object, ...] = ()) -> HordeWorkerProcessManager:
+        process_manager = _make_tickable_manager()
+        process_manager._job_popper._ram_guard_active = True
+        process_manager._memory_pressure_recovery_attempted = False
+        process_manager._last_memory_pressure_recovery_time = 0.0
+
+        process_manager._job_tracker = Mock()
+        process_manager._job_tracker.jobs_pending_inference = ()
+        process_manager._job_tracker.jobs_in_progress = ()
+        process_manager._job_tracker.jobs_pending_safety_check = ()
+        process_manager._job_tracker.jobs_being_safety_checked = ()
+        process_manager._job_tracker.jobs_pending_submit = jobs_pending_submit
+
+        process = make_mock_process_info(
+            0,
+            model_name="stable_diffusion",
+            state=HordeProcessState.WAITING_FOR_JOB,
+        )
+        process_manager._process_map.clear()
+        process_manager._process_map[0] = process
+        process_manager._process_lifecycle._replace_inference_process = Mock()
+        return process_manager
+
+    def test_completed_upload_blocks_memory_pressure_recycle(self) -> None:
+        """Never kill a process while its completed result still needs submission."""
+        process_manager = self._make_manager(jobs_pending_submit=(object(),))
+
+        assert process_manager._recover_idle_inference_process_for_memory_pressure() is False
+        process_manager._process_lifecycle._replace_inference_process.assert_not_called()
+
+    def test_idle_process_recycles_after_all_job_stages_drain(self) -> None:
+        """Once submission drains, recycle one idle process without faulting a job."""
+        process_manager = self._make_manager()
+        process = process_manager._process_map[0]
+
+        assert process_manager._recover_idle_inference_process_for_memory_pressure() is True
+        process_manager._process_lifecycle._replace_inference_process.assert_called_once_with(
+            process,
+            fault_referenced_job=False,
+        )
+
+    def test_recovery_runs_only_once_per_pressure_episode(self) -> None:
+        """A persistent low-memory reading must not cause continuous process churn."""
+        process_manager = self._make_manager()
+
+        assert process_manager._recover_idle_inference_process_for_memory_pressure() is True
+        assert process_manager._recover_idle_inference_process_for_memory_pressure() is False
+        process_manager._process_lifecycle._replace_inference_process.assert_called_once()

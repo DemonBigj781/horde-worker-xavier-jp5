@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import multiprocessing
 import time
-from typing import override
+from typing_extensions import override
 
 from horde_model_reference.meta_consts import KNOWN_IMAGE_GENERATION_BASELINE
 from horde_sdk.ai_horde_api.apimodels import ImageGenerateJobPopResponse

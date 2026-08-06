@@ -36,6 +36,8 @@ class InferenceProcessEntryPoint(Protocol):
         vram_heavy_models: bool = False,
         dry_run_skip_inference: bool = False,
         dry_run_inference_delay: float = 1.0,
+        vram_reserve_gib: float = 0,
+        serialize_aux_model_downloads: bool = True,
     ) -> None:
         """Run an inference process until told to end."""
 
@@ -85,6 +87,87 @@ class DownloadProcessEntryPoint(Protocol):
         """Run the download process until told to end."""
 
 
+def _uses_guarded_comfyui_loading(
+    *,
+    low_memory_mode: bool,
+    very_high_memory_mode: bool,
+    vram_reserve_gib: float,
+) -> bool:
+    """Return whether ComfyUI should enforce the shared-memory reserve."""
+    return vram_reserve_gib > 0 and not low_memory_mode and not very_high_memory_mode
+
+
+def _build_inference_comfyui_args(
+    *,
+    low_memory_mode: bool = False,
+    high_memory_mode: bool = False,
+    very_high_memory_mode: bool = False,
+    amd_gpu: bool = False,
+    directml: int | None = None,
+    vram_heavy_models: bool = False,
+    vram_reserve_gib: float = 0,
+) -> list[str]:
+    """Build ComfyUI arguments while preserving memory for shared-memory systems."""
+    guarded_loading = _uses_guarded_comfyui_loading(
+        low_memory_mode=low_memory_mode,
+        very_high_memory_mode=very_high_memory_mode,
+        vram_reserve_gib=vram_reserve_gib,
+    )
+    args = [] if guarded_loading else ["--disable-smart-memory"]
+
+    if amd_gpu:
+        args.append("--use-pytorch-cross-attention")
+    if directml is not None:
+        args.append(f"--directml={directml}")
+
+    reserve_gib = 0.0
+    if very_high_memory_mode:
+        args.append("--gpu-only")
+    elif low_memory_mode:
+        args.append("--novram")
+    elif high_memory_mode and vram_heavy_models:
+        reserve_gib = 6
+    elif not high_memory_mode and not vram_heavy_models:
+        reserve_gib = 1.4
+
+    if not low_memory_mode and not very_high_memory_mode:
+        reserve_gib = max(reserve_gib, vram_reserve_gib)
+    if reserve_gib > 0:
+        args.extend(["--reserve-vram", f"{reserve_gib:g}"])
+
+    return args
+
+
+def _build_models_not_to_force_load(
+    *,
+    low_memory_mode: bool = False,
+    high_memory_mode: bool = False,
+    very_high_memory_mode: bool = False,
+    vram_reserve_gib: float = 0,
+) -> list[str]:
+    """Select model families that ComfyUI may partially load or offload."""
+    from horde_model_reference.meta_consts import KNOWN_IMAGE_GENERATION_BASELINE
+
+    models = [KNOWN_IMAGE_GENERATION_BASELINE.flux_1]
+    guarded_loading = _uses_guarded_comfyui_loading(
+        low_memory_mode=low_memory_mode,
+        very_high_memory_mode=very_high_memory_mode,
+        vram_reserve_gib=vram_reserve_gib,
+    )
+    if very_high_memory_mode:
+        return models
+    if guarded_loading or low_memory_mode:
+        models.extend(
+            [
+                KNOWN_IMAGE_GENERATION_BASELINE.stable_diffusion_xl,
+                KNOWN_IMAGE_GENERATION_BASELINE.stable_cascade,
+            ],
+        )
+    elif high_memory_mode:
+        models.append(KNOWN_IMAGE_GENERATION_BASELINE.stable_cascade)
+    return models
+
+
 def start_inference_process(
     process_id: int,
     process_message_queue: ProcessQueue,
@@ -104,6 +187,8 @@ def start_inference_process(
     dry_run_skip_inference: bool = False,
     dry_run_inference_delay: float = 1.0,
     gpu_sampling_lease: Semaphore | None = None,
+    vram_reserve_gib: float = 0,
+    serialize_aux_model_downloads: bool = True,
 ) -> None:
     """Start an inference process.
 
@@ -170,44 +255,21 @@ def start_inference_process(
                     f"very_high_memory_mode={very_high_memory_mode}",
                 )
 
-                extra_comfyui_args = ["--disable-smart-memory"]
-
-                if amd_gpu:
-                    extra_comfyui_args.append("--use-pytorch-cross-attention")
-
-                if directml is not None:
-                    extra_comfyui_args.append(f"--directml={directml}")
-
-                from horde_model_reference.meta_consts import KNOWN_IMAGE_GENERATION_BASELINE
-
-                # Force-load policy is expressed in horde baselines; hordelib owns the
-                # mapping to comfy model class names.
-                models_not_to_force_load: list[str] = [KNOWN_IMAGE_GENERATION_BASELINE.flux_1]
-
-                if very_high_memory_mode:
-                    extra_comfyui_args.append("--gpu-only")
-                elif high_memory_mode:
-                    # extra_comfyui_args.append("--normalvram")
-                    models_not_to_force_load.extend(
-                        [
-                            KNOWN_IMAGE_GENERATION_BASELINE.stable_cascade,
-                        ],
-                    )
-                elif low_memory_mode:
-                    extra_comfyui_args.append("--novram")
-                    models_not_to_force_load.extend(
-                        [
-                            KNOWN_IMAGE_GENERATION_BASELINE.stable_diffusion_xl,
-                            KNOWN_IMAGE_GENERATION_BASELINE.stable_cascade,
-                        ],
-                    )
-                elif not vram_heavy_models:
-                    logger.info("Reserving 1.4GB VRAM.")
-                    extra_comfyui_args.extend(["--reserve-vram", "1.4"])
-
-                if high_memory_mode and vram_heavy_models:
-                    logger.info("High memory mode and vram heavy models are both enabled. Reserving 6GB VRAM.")
-                    extra_comfyui_args.extend(["--reserve-vram", "6"])
+                extra_comfyui_args = _build_inference_comfyui_args(
+                    low_memory_mode=low_memory_mode,
+                    high_memory_mode=high_memory_mode,
+                    very_high_memory_mode=very_high_memory_mode,
+                    amd_gpu=amd_gpu,
+                    directml=directml,
+                    vram_heavy_models=vram_heavy_models,
+                    vram_reserve_gib=vram_reserve_gib,
+                )
+                models_not_to_force_load = _build_models_not_to_force_load(
+                    low_memory_mode=low_memory_mode,
+                    high_memory_mode=high_memory_mode,
+                    very_high_memory_mode=very_high_memory_mode,
+                    vram_reserve_gib=vram_reserve_gib,
+                )
 
                 if "--reserve-vram" not in extra_comfyui_args:
                     logger.warning("No VRAM reservation specified.")
@@ -246,6 +308,7 @@ def start_inference_process(
             # Propagate the operator's memory assertion so HordeLib keeps models resident
             # (no per-job aggressive unload / RAM->VRAM reload) when there is VRAM headroom.
             high_memory_mode=high_memory_mode or very_high_memory_mode,
+            serialize_aux_model_downloads=serialize_aux_model_downloads,
         )
 
         worker_process.main_loop()

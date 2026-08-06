@@ -19,6 +19,7 @@ import time
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
+from strenum import StrEnum
 
 if TYPE_CHECKING:
     from multiprocessing.connection import Connection
@@ -154,7 +155,7 @@ class RecentJobRecord(BaseModel):
         )
 
 
-class DownloadPhase(enum.StrEnum):
+class DownloadPhase(StrEnum):
     """What the background download process is doing right now."""
 
     INITIALIZING = "initializing"

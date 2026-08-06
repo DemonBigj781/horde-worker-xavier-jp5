@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
-import enum
+from strenum import StrEnum
 import re
 from typing import TYPE_CHECKING
 
@@ -175,7 +175,7 @@ def _disk_info_by_name(records: Mapping[str, GenericModelRecord]) -> dict[str, M
     return {info.name: info for info in plan.models}
 
 
-class MetaKind(enum.StrEnum):
+class MetaKind(StrEnum):
     """A kind of meta model-load instruction the builder can produce."""
 
     TOP_N = "top_n"

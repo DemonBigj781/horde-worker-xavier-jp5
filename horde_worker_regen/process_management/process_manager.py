@@ -58,7 +58,11 @@ from horde_worker_regen.process_management.job_submitter import JobSubmitter
 from horde_worker_regen.process_management.job_tracker import JobTracker
 from horde_worker_regen.process_management.lru_cache import LRUCache
 from horde_worker_regen.process_management.message_dispatcher import MessageDispatcher
-from horde_worker_regen.process_management.messages import AlchemyFormSpec, HordeDownloadAvailabilityMessage
+from horde_worker_regen.process_management.messages import (
+    AlchemyFormSpec,
+    HordeDownloadAvailabilityMessage,
+    HordeProcessState,
+)
 from horde_worker_regen.process_management.model_availability import ModelAvailability
 from horde_worker_regen.process_management.model_metadata import ModelMetadata
 from horde_worker_regen.process_management.process_info import HordeProcessInfo
@@ -627,6 +631,8 @@ class HordeWorkerProcessManager:
             canned_job_source=canned_job_source,
             model_availability=self._model_availability,
         )
+        self._memory_pressure_recovery_attempted = False
+        self._last_memory_pressure_recovery_time = 0.0
 
         self._alchemy_coordinator = AlchemyCoordinator(
             state=self._state,
@@ -937,6 +943,7 @@ class HordeWorkerProcessManager:
             await self.receive_and_handle_process_messages()
             self._maybe_start_inference_processes()
             self.detect_deadlock()
+            self._recover_idle_inference_process_for_memory_pressure()
 
             if len(self._job_tracker.jobs_pending_safety_check) > 0:
                 await self.start_evaluate_safety()
@@ -978,6 +985,55 @@ class HordeWorkerProcessManager:
 
         await self._sleep(self._loop_interval / 2)
         return True
+
+    _MEMORY_PRESSURE_RECOVERY_COOLDOWN_SECONDS = 30.0
+
+    def _recover_idle_inference_process_for_memory_pressure(self) -> bool:
+        """Recycle one idle inference process after all accepted work has drained."""
+        if not self._job_popper.ram_guard_active:
+            self._memory_pressure_recovery_attempted = False
+            return False
+
+        if self._memory_pressure_recovery_attempted:
+            return False
+
+        active_job_queues = (
+            self._job_tracker.jobs_pending_inference,
+            self._job_tracker.jobs_in_progress,
+            self._job_tracker.jobs_pending_safety_check,
+            self._job_tracker.jobs_being_safety_checked,
+            self._job_tracker.jobs_pending_submit,
+        )
+        if any(active_job_queues):
+            return False
+
+        current_time = time.time()
+        if (
+            current_time - self._last_memory_pressure_recovery_time
+            < self._MEMORY_PRESSURE_RECOVERY_COOLDOWN_SECONDS
+        ):
+            return False
+
+        idle_states = {HordeProcessState.WAITING_FOR_JOB, HordeProcessState.PRELOADED_MODEL}
+        for process_info in self._process_map.values():
+            if process_info.process_type != HordeProcessType.INFERENCE:
+                continue
+            if process_info.last_process_state not in idle_states:
+                continue
+
+            logger.warning(
+                f"Memory guard is recycling idle inference process {process_info.process_id} "
+                "to release model allocations.",
+            )
+            self._process_lifecycle._replace_inference_process(
+                process_info,
+                fault_referenced_job=False,
+            )
+            self._memory_pressure_recovery_attempted = True
+            self._last_memory_pressure_recovery_time = current_time
+            return True
+
+        return False
 
     _DOWNLOAD_STARTUP_GRACE_SECONDS = 90.0
     """How long to wait for the download process's first availability report before starting

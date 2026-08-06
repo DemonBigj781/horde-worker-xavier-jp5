@@ -9,6 +9,7 @@ higher-level api_job_pop flow.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from unittest.mock import AsyncMock, Mock, patch
 
 from horde_sdk import RequestErrorResponse
@@ -45,6 +46,7 @@ def _make_popper(
     max_concurrent_inference_processes: int = 1,
     image_models_to_load: list[str] | None = None,
     dry_run_skip_api: bool = False,
+    available_ram_bytes: Callable[[], int] | None = None,
 ) -> JobPopper:
     """Build a JobPopper with mostly-mocked dependencies."""
     if state is None:
@@ -78,6 +80,7 @@ def _make_popper(
         max_inference_processes=max_inference_processes,
         max_concurrent_inference_processes=max_concurrent_inference_processes,
         dry_run_skip_api=dry_run_skip_api,
+        available_ram_bytes=available_ram_bytes,
     )
 
 
@@ -195,6 +198,51 @@ class TestApiJobPopGuardClauses:
         process_map = _make_process_map_with_available_processes()
         popper = _make_popper(state=state, process_map=process_map)
         await popper.api_job_pop()
+
+    async def test_low_available_ram_blocks_pop(self) -> None:
+        """Unified-memory workers must stop accepting work below the configured reserve."""
+        session = Mock()
+        session.submit_request = AsyncMock()
+        bridge_data = make_mock_bridge_data(minimum_available_ram_gib=6)
+        popper = _make_popper(
+            bridge_data=bridge_data,
+            process_map=_make_process_map_with_available_processes(),
+            horde_client_session=session,
+            available_ram_bytes=lambda: 5 * 1024**3,
+        )
+
+        await popper.api_job_pop()
+
+        session.submit_request.assert_not_awaited()
+
+    async def test_available_ram_above_reserve_allows_pop(self) -> None:
+        """The reserve must not block workers that still have enough available RAM."""
+        session = Mock()
+        session.submit_request = AsyncMock(return_value=RequestErrorResponse(message="test error"))
+        bridge_data = make_mock_bridge_data(minimum_available_ram_gib=6)
+        popper = _make_popper(
+            bridge_data=bridge_data,
+            process_map=_make_process_map_with_available_processes(),
+            horde_client_session=session,
+            available_ram_bytes=lambda: 7 * 1024**3,
+        )
+
+        await popper.api_job_pop()
+
+        session.submit_request.assert_awaited_once()
+
+    def test_ram_guard_requires_recovery_margin_after_pressure(self) -> None:
+        """The guard must not flap when available RAM only barely recovers."""
+        available_values = iter((5 * 1024**3, int(6.5 * 1024**3), 7 * 1024**3))
+        bridge_data = make_mock_bridge_data(minimum_available_ram_gib=6)
+        popper = _make_popper(
+            bridge_data=bridge_data,
+            available_ram_bytes=lambda: next(available_values),
+        )
+
+        assert popper._has_minimum_available_ram(bridge_data) is False
+        assert popper._has_minimum_available_ram(bridge_data) is False
+        assert popper._has_minimum_available_ram(bridge_data) is True
 
     async def test_no_completed_session_jobs_blocks_queue_ahead(self) -> None:
         """Until the first job of the session completes, a second pop must not happen.

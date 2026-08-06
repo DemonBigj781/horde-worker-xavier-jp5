@@ -199,6 +199,10 @@ max_lora_cache_size: 10
 extra_slow_worker: false
 # Low-end cards or low performance: true
 
+# Pause new job pops while Linux reports less than this much available RAM.
+# The same reserve is passed to ComfyUI on unified-memory systems. Set to 0 to disable.
+minimum_available_ram_gib: 0
+
 # Only pick up jobs requesting steps lower than the model's average steps.
 # Useful for slower workers or if you don't want to serve requests with an extraordinary number of steps.
 limit_max_steps: false
@@ -296,6 +300,7 @@ models_to_skip:
   - "pix2pix" # Not currently supported
   - "SDXL_beta::stability.ai#6901" # Do not remove this, as this model would never work
   - "A to Zovya RPG" # This model is known to cause problems with reGen
+  - "Flux.1-Schnell fp8 (Compact)" # Unsupported on this Xavier deployment; never advertise or download it
   # - "Stable Cascade 1.0" # This a *very* VRAM intensive model
   # - ALL NSFW MODELS
   #- "stable_diffusion_inpainting"  # Inpainting is generally quite heavy along with other models for smaller GPUs.

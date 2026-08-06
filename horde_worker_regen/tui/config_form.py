@@ -12,7 +12,7 @@ intentionally omitted: showing controls that do nothing would mislead, not help.
 from __future__ import annotations
 
 import dataclasses
-import enum
+from strenum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +28,7 @@ MODELS_TO_SKIP_KEY = "models_to_skip"
 ALCHEMY_FORMS = ("caption", "nsfw", "interrogation", "post-process")
 
 
-class FieldKind(enum.StrEnum):
+class FieldKind(StrEnum):
     """How a config field is edited and coerced."""
 
     BOOL = "bool"

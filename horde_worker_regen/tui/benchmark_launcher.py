@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
-import enum
+from strenum import StrEnum
 import subprocess
 import sys
 import time
@@ -57,7 +57,7 @@ _SUGGESTED_CONFIG_KEYS = (
 """The bridgeData keys the benchmark recommendation writes when applied to the config file."""
 
 
-class BenchmarkSupervisorStatus(enum.StrEnum):
+class BenchmarkSupervisorStatus(StrEnum):
     """The supervisor's view of the benchmark subprocess lifecycle."""
 
     IDLE = "idle"

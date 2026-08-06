@@ -178,6 +178,7 @@ def make_mock_bridge_data(**overrides: object) -> Mock:
     bd.preload_timeout = 120
     bd.download_timeout = 120
     bd.post_process_timeout = 60
+    bd.minimum_available_ram_gib = 0
     bd.max_batch = 1
     bd.max_power = 8
     bd.exit_on_unhandled_faults = False

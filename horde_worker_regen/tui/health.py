@@ -11,6 +11,8 @@ from __future__ import annotations
 import dataclasses
 import enum
 
+from strenum import StrEnum
+
 from horde_worker_regen.process_management.supervisor_channel import WorkerStateSnapshot
 from horde_worker_regen.tui.formatters import human_bytes, human_duration
 from horde_worker_regen.tui.worker_launcher import SupervisorStatus
@@ -56,7 +58,7 @@ class HealthStatus(enum.IntEnum):
         }[self]
 
 
-class WorkerPhase(enum.StrEnum):
+class WorkerPhase(StrEnum):
     """The worker's headline lifecycle phase."""
 
     STOPPED = "stopped"

@@ -16,7 +16,7 @@ a power user can configure by hand instead.
 from __future__ import annotations
 
 import asyncio
-import enum
+from strenum import StrEnum
 import os
 import warnings
 from collections.abc import Coroutine
@@ -44,7 +44,7 @@ DEFAULT_DREAMER_NAME = "An Awesome Dreamer"
 REGISTER_URL = "https://aihorde.net/register"
 
 
-class WizardOutcome(enum.StrEnum):
+class WizardOutcome(StrEnum):
     """What the user chose to do once setup was saved."""
 
     BENCHMARK = "benchmark"

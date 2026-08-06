@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Self
+from typing_extensions import Self
 
 from horde_sdk.worker.dispatch.ai_horde.bridge_data import CombinedHordeBridgeData
 from loguru import logger
@@ -248,6 +248,9 @@ class reGenBridgeData(CombinedHordeBridgeData):
     """The maximum amount of time to allow a job to run before it is killed"""
 
     post_process_timeout: int = Field(default=60, ge=15)
+
+    minimum_available_ram_gib: float = Field(default=0, ge=0, le=128)
+    """Pause new job pops while system-available RAM is below this reserve. Zero disables the guard."""
 
     download_timeout: int = Field(default=TOTAL_LORA_DOWNLOAD_TIMEOUT + 1)
     """The maximum amount of time to allow an aux model to download before it is killed"""

@@ -26,7 +26,7 @@ import signal
 import sys
 import threading
 import time
-from typing import override
+from typing_extensions import override
 
 try:
     from multiprocessing.connection import PipeConnection as Connection  # type: ignore

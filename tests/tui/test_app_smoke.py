@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 import time
+from multiprocessing import resource_tracker
 from pathlib import Path
 
 import pytest
@@ -30,6 +32,10 @@ _LIVE_PHASES = {
 @pytest.mark.e2e
 async def test_app_boots_renders_and_cycles_tabs(tmp_path: Path) -> None:
     """The app boots the fake worker, renders the status hero, and cycles all tabs without error."""
+    if sys.version_info < (3, 11):
+        # Textual's test capture exposes stderr.fileno() as -1. Python 3.10's
+        # resource tracker forwards it unless the tracker starts beforehand.
+        resource_tracker.ensure_running()
     store = AppStateStore(tmp_path / ".horde_worker_regen" / "state.json")
     store.set_auto_start_worker(True)  # opt in so the worker auto-starts instead of prompting
     supervisor = WorkerSupervisor(WorkerLaunchOptions(worker_name="SmokeApp"), mode=WorkerProcessMode.FAKE)

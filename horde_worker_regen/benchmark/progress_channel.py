@@ -14,7 +14,7 @@ keeping on disk. Events are deliberately lean and JSON-round-trippable.
 from __future__ import annotations
 
 import abc
-import enum
+from strenum import StrEnum
 import json
 import time
 from pathlib import Path
@@ -30,7 +30,7 @@ BENCHMARK_PROGRESS_PROTOCOL_VERSION = 1
 """Bumped when the event schema changes incompatibly; stamped into every event and checked by readers."""
 
 
-class ProgressEventKind(enum.StrEnum):
+class ProgressEventKind(StrEnum):
     """Discriminates the kind of a benchmark progress event."""
 
     RAMP_STARTED = "ramp_started"

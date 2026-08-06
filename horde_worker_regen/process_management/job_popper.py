@@ -7,6 +7,7 @@ import collections
 import random
 import time
 from asyncio import CancelledError
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from horde_sdk import RequestErrorResponse
@@ -168,6 +169,7 @@ class JobPopper:
         dry_run_skip_api: bool = False,
         canned_job_source: CannedJobSource | None = None,
         model_availability: ModelAvailability | None = None,
+        available_ram_bytes: Callable[[], int] | None = None,
     ) -> None:
         """Initialize with all required dependencies for job popping.
 
@@ -195,6 +197,8 @@ class JobPopper:
             self._canned_job_source = make_default_dry_run_source()
 
         self._model_availability = model_availability
+        self._available_ram_bytes = available_ram_bytes or self._read_available_ram_bytes
+        self._ram_guard_active = False
 
         self._pop_throttler = PopThrottler(job_tracker=job_tracker)
         self._source_image_downloader = SourceImageDownloader(
@@ -206,6 +210,49 @@ class JobPopper:
         self._api_messages_received = {}
         self._api_call_loop_interval = 1
         self._fast_pop_interval = 0.05
+
+    @staticmethod
+    def _read_available_ram_bytes() -> int:
+        """Return memory currently available for new allocations."""
+        import psutil
+
+        return int(psutil.virtual_memory().available)
+
+    def _has_minimum_available_ram(self, bridge_data: reGenBridgeData) -> bool:
+        """Return whether the worker can safely accept another unified-memory job."""
+        reserve_gib = bridge_data.minimum_available_ram_gib
+        if reserve_gib <= 0:
+            self._ram_guard_active = False
+            return True
+
+        try:
+            available_bytes = self._available_ram_bytes()
+        except Exception as error:
+            if not self._ram_guard_active:
+                logger.warning(f"Unable to read available RAM; pausing job pops: {error}")
+            self._ram_guard_active = True
+            return False
+
+        reserve_bytes = int(reserve_gib * 1024**3)
+        recovery_margin_bytes = 1024**3 if self._ram_guard_active else 0
+        required_bytes = reserve_bytes + recovery_margin_bytes
+        if available_bytes < required_bytes:
+            if not self._ram_guard_active:
+                logger.warning(
+                    f"Available RAM fell below the {reserve_gib:g} GiB reserve; pausing new job pops.",
+                )
+            self._ram_guard_active = True
+            return False
+
+        if self._ram_guard_active:
+            logger.info("Available RAM recovered above the configured reserve; resuming job pops.")
+        self._ram_guard_active = False
+        return True
+
+    @property
+    def ram_guard_active(self) -> bool:
+        """Return whether job popping is paused by the unified-memory guard."""
+        return self._ram_guard_active
 
     @property
     def _max_concurrent_inference_processes(self) -> int:
@@ -403,6 +450,9 @@ class JobPopper:
         bridge_data = self._runtime_config.bridge_data
 
         if self._handle_consecutive_failures(bridge_data, cur_time):
+            return
+
+        if not self._has_minimum_available_ram(bridge_data):
             return
 
         if self._is_queue_full(bridge_data):

@@ -17,7 +17,9 @@ try:
 except Exception:
     from multiprocessing.connection import Connection  # type: ignore
 from multiprocessing.synchronize import Lock, Semaphore
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING
+
+from typing_extensions import override
 
 from horde_sdk.ai_horde_api import GENERATION_STATE
 from horde_sdk.ai_horde_api.apimodels import (
@@ -103,6 +105,7 @@ class HordeInferenceProcess(HordeProcess):
         dry_run_skip_inference: bool = False,
         dry_run_inference_delay: float = 1.0,
         gpu_sampling_lease: Semaphore | None = None,
+        serialize_aux_model_downloads: bool = True,
     ) -> None:
         """Initialise the HordeInferenceProcess.
 
@@ -134,6 +137,7 @@ class HordeInferenceProcess(HordeProcess):
         )
 
         self._aux_model_lock = aux_model_lock
+        self._serialize_aux_model_downloads = serialize_aux_model_downloads
         self._dry_run_skip_inference = dry_run_skip_inference
         self._dry_run_inference_delay = dry_run_inference_delay
 
@@ -337,7 +341,13 @@ class HordeInferenceProcess(HordeProcess):
         Returns:
             float | None: The time elapsed during downloading, or None if no models were downloaded.
         """
-        with self._aux_model_lock:
+        loras = job_info.payload.loras or []
+        if not loras:
+            logger.info("No auxiliary models to download")
+            return None
+
+        lock_context = self._aux_model_lock if self._serialize_aux_model_downloads else contextlib.nullcontext()
+        with lock_context:
             time_start = time.time()
 
             lora_manager = self._shared_model_manager.manager.lora
@@ -346,12 +356,6 @@ class HordeInferenceProcess(HordeProcess):
                 raise RuntimeError("Failed to load LORA model manager")
 
             performed_a_download = False
-
-            loras = job_info.payload.loras or []
-
-            if not loras:
-                logger.info("No auxiliary models to download")
-                return None
 
             try:
                 lora_manager.load_model_database()

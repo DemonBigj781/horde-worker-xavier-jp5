@@ -1,0 +1,783 @@
+diff --git a/hordelib/feature_impact.py b/hordelib/feature_impact.py
+index 3d143dc..6ac12a8 100644
+--- a/hordelib/feature_impact.py
++++ b/hordelib/feature_impact.py
+@@ -16,7 +16,9 @@ This module is comfy-free and import-safe before ``hordelib.initialise()``; it i
+ of the public API surface re-exported from :mod:`hordelib.api`.
+ """
+ 
+-from enum import StrEnum, auto
++from enum import auto
++
++from strenum import StrEnum
+ 
+ from horde_model_reference.model_reference_records import ImageGenerationModelRecord
+ from pydantic import BaseModel
+diff --git a/hordelib/initialisation.py b/hordelib/initialisation.py
+index 6fa4cb4..a162cfd 100644
+--- a/hordelib/initialisation.py
++++ b/hordelib/initialisation.py
+@@ -10,6 +10,7 @@ from hordelib.config_path import get_comfyui_path, get_hordelib_path, set_system
+ from hordelib.consts import RELEASE_VERSION
+ from hordelib.installation import EnvironmentInstaller, load_packaged_manifest
+ from hordelib.utils.logger import HordeLog
++from hordelib.utils.torch_compat import install_torch_compat
+ 
+ _is_initialised = False
+ 
+@@ -65,6 +66,7 @@ def initialise(
+         )
+ 
+     # Ensure we have ComfyUI (and any manifest-pinned custom nodes)
++    install_torch_compat()
+     logger.debug("Clearing command line args in sys.argv before ComfyUI load")
+     sys_arg_bkp = sys.argv.copy()
+     sys.argv = sys.argv[:1]
+diff --git a/hordelib/installation/installer.py b/hordelib/installation/installer.py
+index eb9de0d..4d4a079 100644
+--- a/hordelib/installation/installer.py
++++ b/hordelib/installation/installer.py
+@@ -15,6 +15,9 @@ hordelib:
+ """
+ """Registers hordelib's first-party nodes directory with ComfyUI."""
+ 
++COMFYUI_TORCH21_REF = "fb991e2c1e7476809d566a4620c2132e05a466dd"
++COMFYUI_TORCH21_PATCH = Path(__file__).with_name("patches") / "comfyui-torch21.patch"
++
+ 
+ class GitCommandError(RuntimeError):
+     """A git command run by the installer failed."""
+@@ -39,6 +42,24 @@ def _run_git(args: list[str], cwd: Path) -> str:
+     return result.stdout.strip()
+ 
+ 
++def _ensure_git_patch(repo_path: Path, patch_path: Path) -> None:
++    """Apply a bundled patch exactly once, rejecting an unexpected source tree."""
++    patch = str(patch_path.resolve())
++    try:
++        _run_git(["apply", "--check", patch], repo_path)
++    except GitCommandError as forward_error:
++        try:
++            _run_git(["apply", "--reverse", "--check", patch], repo_path)
++        except GitCommandError as reverse_error:
++            raise RuntimeError(
++                f"Patch {patch_path.name} matches neither the original nor patched source tree: "
++                f"{forward_error}; {reverse_error}",
++            ) from reverse_error
++        return
++
++    _run_git(["apply", patch], repo_path)
++
++
+ def _head_commit(repo_path: Path) -> str | None:
+     """Return the HEAD commit SHA of a repo, or None if it isn't a usable git repo."""
+     try:
+@@ -82,6 +103,8 @@ class EnvironmentInstaller:
+                 ComfyUI via ``extra_model_paths.yaml``. Defaults to ``hordelib/nodes``.
+         """
+         self.ensure_comfyui(comfyui_root)
++        if self.manifest.comfyui_ref == COMFYUI_TORCH21_REF:
++            _ensure_git_patch(comfyui_root, COMFYUI_TORCH21_PATCH)
+         for node in self.manifest.custom_nodes:
+             self.ensure_custom_node(comfyui_root, node)
+         self.write_extra_model_paths(comfyui_root, hordelib_nodes_path)
+diff --git a/hordelib/installation/manifest.py b/hordelib/installation/manifest.py
+index 618375d..5c997a2 100644
+--- a/hordelib/installation/manifest.py
++++ b/hordelib/installation/manifest.py
+@@ -2,7 +2,7 @@
+ 
+ import json
+ from pathlib import Path
+-from typing import Self
++from typing_extensions import Self
+ 
+ from pydantic import BaseModel, field_validator
+ 
+diff --git a/hordelib/model_manager/base.py b/hordelib/model_manager/base.py
+index a934c11..fa99180 100644
+--- a/hordelib/model_manager/base.py
++++ b/hordelib/model_manager/base.py
+@@ -2,7 +2,7 @@ import threading
+ from abc import ABC
+ from collections.abc import Callable, Iterable
+ from pathlib import Path
+-from typing import Any, cast
++from typing import Any, Generic, TypeVar, cast
+ from urllib import parse
+ 
+ import psutil
+@@ -25,7 +25,10 @@ from hordelib.consts import CIVITAI_API_PATH
+ from hordelib.settings import UserSettings
+ 
+ 
+-class BaseModelManager[RecordT: GenericModelRecord | dict[str, Any]](ABC):
++RecordT = TypeVar("RecordT", bound=GenericModelRecord | dict[str, Any])
++
++
++class BaseModelManager(ABC, Generic[RecordT]):
+     """Abstract base for the per-category model managers.
+ 
+     ``RecordT`` is the model reference record type a manager operates on. Managers backed by
+diff --git a/hordelib/model_manager/civitai_adhoc.py b/hordelib/model_manager/civitai_adhoc.py
+index 360118f..ca20eed 100644
+--- a/hordelib/model_manager/civitai_adhoc.py
++++ b/hordelib/model_manager/civitai_adhoc.py
+@@ -34,7 +34,9 @@ from dataclasses import dataclass, field
+ from datetime import datetime
+ from multiprocessing.synchronize import Lock as multiprocessing_lock
+ from pathlib import Path
+-from typing import Any, override
++from typing import Any, Generic, TypeVar
++
++from typing_extensions import override
+ 
+ import logfire
+ import requests
+@@ -123,16 +125,21 @@ class SkipDownload(Exception):
+     """
+ 
+ 
++R = TypeVar("R")
++RecordT = TypeVar("RecordT", bound=GenericModelRecord)
++
++
+ @dataclass
+-class _QueuedDownload[R]:
++class _QueuedDownload(Generic[R]):
+     """An item on the download queue: the record to download plus contextual logging metadata."""
+ 
+     record: R
+     context: dict = field(default_factory=dict)
+ 
+ 
+-class CivitaiAdhocModelManager[RecordT: GenericModelRecord](
++class CivitaiAdhocModelManager(
+     BaseModelManager[RecordT],
++    Generic[RecordT],
+ ):
+     """Shared base for managers that download and cache CivitAI models on demand.
+ 
+diff --git a/hordelib/model_manager/civitai_provider.py b/hordelib/model_manager/civitai_provider.py
+index 769bfc3..f007ef9 100644
+--- a/hordelib/model_manager/civitai_provider.py
++++ b/hordelib/model_manager/civitai_provider.py
+@@ -13,7 +13,9 @@ delegates :meth:`fetch_category` to the owning manager's current in-memory recor
+ from __future__ import annotations
+ 
+ from collections.abc import Mapping
+-from typing import Protocol, override
++from typing import Protocol
++
++from typing_extensions import override
+ 
+ from horde_model_reference.meta_consts import MODEL_REFERENCE_CATEGORY
+ from horde_model_reference.model_reference_records import GenericModelRecord
+diff --git a/hordelib/model_manager/compvis.py b/hordelib/model_manager/compvis.py
+index 5594c0c..f9eaf0f 100644
+--- a/hordelib/model_manager/compvis.py
++++ b/hordelib/model_manager/compvis.py
+@@ -1,7 +1,9 @@
+ import json
+ import os
+ from pathlib import Path
+-from typing import Any, override
++from typing import Any
++
++from typing_extensions import override
+ 
+ from horde_model_reference.meta_consts import (
+     MODEL_DOMAIN,
+diff --git a/hordelib/model_manager/lora.py b/hordelib/model_manager/lora.py
+index bb6aad4..51f4522 100644
+--- a/hordelib/model_manager/lora.py
++++ b/hordelib/model_manager/lora.py
+@@ -14,7 +14,7 @@ import threading
+ import time
+ from datetime import datetime
+ from multiprocessing.synchronize import Lock as multiprocessing_lock
+-from typing import override
++from typing_extensions import override
+ 
+ import logfire
+ from fuzzywuzzy import fuzz
+diff --git a/hordelib/model_manager/ti.py b/hordelib/model_manager/ti.py
+index e3be5fb..81c2055 100644
+--- a/hordelib/model_manager/ti.py
++++ b/hordelib/model_manager/ti.py
+@@ -12,7 +12,7 @@ from __future__ import annotations
+ import time
+ from collections.abc import Iterable
+ from multiprocessing.synchronize import Lock as multiprocessing_lock
+-from typing import override
++from typing_extensions import override
+ 
+ import logfire
+ import requests
+diff --git a/hordelib/pipeline/families/image.py b/hordelib/pipeline/families/image.py
+index 751378f..9804e9e 100644
+--- a/hordelib/pipeline/families/image.py
++++ b/hordelib/pipeline/families/image.py
+@@ -21,7 +21,7 @@ legacy ``_final_pipeline_adjustments`` performed it.
+ """
+ 
+ from pathlib import Path
+-from typing import Any
++from typing import Any, TypeAlias
+ 
+ from horde_model_reference.meta_consts import KNOWN_IMAGE_GENERATION_BASELINE, get_baseline_native_resolution
+ from loguru import logger
+@@ -48,9 +48,9 @@ from hordelib.utils.image_utils import ImageUtils
+ 
+ PIPELINES_DIR = Path(__file__).parent.parent.parent / "pipelines"
+ 
+-type ImageGenSpec = PipelineSpec[ImageGenPayload, ModelContext]
+-type ImageGenTemplate = PipelineTemplate[ImageGenPayload, ModelContext]
+-type ImageGenBinding = ParamBinding[ImageGenPayload]
++ImageGenSpec: TypeAlias = PipelineSpec[ImageGenPayload, ModelContext]
++ImageGenTemplate: TypeAlias = PipelineTemplate[ImageGenPayload, ModelContext]
++ImageGenBinding: TypeAlias = ParamBinding[ImageGenPayload]
+ 
+ 
+ def _has_img2img_mask(payload: ImageGenPayload) -> bool:
+diff --git a/hordelib/pipeline/families/post_processing.py b/hordelib/pipeline/families/post_processing.py
+index eee1628..1001ac5 100644
+--- a/hordelib/pipeline/families/post_processing.py
++++ b/hordelib/pipeline/families/post_processing.py
+@@ -9,6 +9,7 @@ graph (see ``HordeLib.post_process``).
+ """
+ 
+ from pathlib import Path
++from typing import TypeAlias
+ 
+ from hordelib.pipeline.context import PostProcessingContext
+ from hordelib.pipeline.graph import ComfyGraph
+@@ -18,7 +19,7 @@ from hordelib.pipeline.template import ParamBinding, PipelineTemplate
+ 
+ PIPELINES_DIR = Path(__file__).parent.parent.parent / "pipelines"
+ 
+-type PostProcessingTemplate = PipelineTemplate[PostProcessingGraphPayload, PostProcessingContext]
++PostProcessingTemplate: TypeAlias = PipelineTemplate[PostProcessingGraphPayload, PostProcessingContext]
+ 
+ 
+ def _apply_model_file(
+diff --git a/hordelib/pipeline/graph.py b/hordelib/pipeline/graph.py
+index e38cc0d..78ff9cc 100644
+--- a/hordelib/pipeline/graph.py
++++ b/hordelib/pipeline/graph.py
+@@ -8,7 +8,9 @@ canonical handles (a KSampler titled ``sampler`` is addressed as ``sampler.steps
+ import copy
+ import json
+ from pathlib import Path
+-from typing import Any, NamedTuple, Self
++from typing import Any, NamedTuple
++
++from typing_extensions import Self
+ 
+ from hordelib.execution.graph_utils import (
+     GraphDict,
+diff --git a/hordelib/pipeline/payload_pp.py b/hordelib/pipeline/payload_pp.py
+index 858206f..8b550f8 100644
+--- a/hordelib/pipeline/payload_pp.py
++++ b/hordelib/pipeline/payload_pp.py
+@@ -10,7 +10,7 @@ membership checks the legacy embedded loop used (``KNOWN_UPSCALERS`` member *nam
+ """
+ 
+ from enum import Enum, auto
+-from typing import Any
++from typing import Any, TypeAlias
+ 
+ from horde_sdk.generation_parameters.alchemy.consts import KNOWN_FACEFIXERS, KNOWN_UPSCALERS
+ from PIL import Image
+@@ -77,10 +77,10 @@ class StripBackgroundPayload(_PostProcessingPayloadBase):
+     """Remove the image background (pure-Python rembg; not a ComfyUI graph)."""
+ 
+ 
+-type PostProcessingGraphPayload = UpscalePayload | FacefixPayload
++PostProcessingGraphPayload: TypeAlias = UpscalePayload | FacefixPayload
+ """The post-processing payloads that execute as ComfyUI graphs."""
+ 
+-type PostProcessingPayload = UpscalePayload | FacefixPayload | StripBackgroundPayload
++PostProcessingPayload: TypeAlias = UpscalePayload | FacefixPayload | StripBackgroundPayload
+ 
+ 
+ def post_processing_payload_from_horde_dict(data: dict[str, Any]) -> PostProcessingPayload:
+diff --git a/hordelib/pipeline/registry.py b/hordelib/pipeline/registry.py
+index a5a8124..741118c 100644
+--- a/hordelib/pipeline/registry.py
++++ b/hordelib/pipeline/registry.py
+@@ -11,24 +11,28 @@ model facts use ``ModelContext``, while simpler families may use a lighter objec
+ 
+ from collections.abc import Callable
+ from dataclasses import dataclass
++from typing import Generic, TypeAlias, TypeVar
+ 
+ from loguru import logger
+ from pydantic import BaseModel
+ 
+ from hordelib.pipeline.template import PipelineTemplate
+ 
+-type Predicate[PayloadT: BaseModel, ContextT] = Callable[[PayloadT, ContextT], bool]
++PayloadT = TypeVar("PayloadT", bound=BaseModel)
++ContextT = TypeVar("ContextT")
++
++Predicate: TypeAlias = Callable[[PayloadT, ContextT], bool]
+ 
+ 
+ @dataclass(frozen=True)
+-class PipelineSpec[PayloadT: BaseModel, ContextT]:
++class PipelineSpec(Generic[PayloadT, ContextT]):
+     template: PipelineTemplate[PayloadT, ContextT]
+     predicate: Predicate[PayloadT, ContextT]
+     priority: int
+     """Higher priorities are evaluated first; ties resolve by registration order."""
+ 
+ 
+-class PipelineRegistry[PayloadT: BaseModel, ContextT]:
++class PipelineRegistry(Generic[PayloadT, ContextT]):
+     def __init__(self) -> None:
+         self._specs: list[PipelineSpec[PayloadT, ContextT]] = []
+ 
+diff --git a/hordelib/pipeline/template.py b/hordelib/pipeline/template.py
+index 6cf7aca..e734bb4 100644
+--- a/hordelib/pipeline/template.py
++++ b/hordelib/pipeline/template.py
+@@ -12,16 +12,19 @@ bindings/patch steps are typed against it.
+ from collections.abc import Callable
+ from dataclasses import dataclass, field
+ from pathlib import Path
+-from typing import Any
++from typing import Any, Generic, TypeAlias, TypeVar
+ 
+ from pydantic import BaseModel
+ 
+ from hordelib.pipeline.graph import ComfyGraph
+ 
+-type Transform[PayloadT: BaseModel] = Callable[[PayloadT], Any]
++PayloadT = TypeVar("PayloadT", bound=BaseModel)
++ContextT = TypeVar("ContextT")
++
++Transform: TypeAlias = Callable[[PayloadT], Any]
+ """Computes a binding value from the payload."""
+ 
+-type PatchStep[PayloadT: BaseModel, ContextT] = Callable[[ComfyGraph, PayloadT, ContextT], None]
++PatchStep: TypeAlias = Callable[[ComfyGraph, PayloadT, ContextT], None]
+ """Mutates a materialized graph from the payload and the resolved context.
+ 
+ Bindings carry pure payload intent; patch steps are where resolved facts (model files on
+@@ -30,7 +33,7 @@ disk, downloaded LoRAs) and structural surgery (chain insertion, rewires) meet t
+ 
+ 
+ @dataclass(frozen=True)
+-class ParamBinding[PayloadT: BaseModel]:
++class ParamBinding(Generic[PayloadT]):
+     """Binds one graph input to a payload field or a computed value.
+ 
+     Exactly one of ``source`` or ``transform`` must be set.
+@@ -61,7 +64,7 @@ class ParamBinding[PayloadT: BaseModel]:
+ 
+ 
+ @dataclass(frozen=True)
+-class PipelineTemplate[PayloadT: BaseModel, ContextT]:
++class PipelineTemplate(Generic[PayloadT, ContextT]):
+     """A named pipeline: graph file + bindings + optional context-aware patch steps."""
+ 
+     name: str
+diff --git a/hordelib/settings.py b/hordelib/settings.py
+index 9af6bbc..427fe43 100644
+--- a/hordelib/settings.py
++++ b/hordelib/settings.py
+@@ -1,7 +1,7 @@
+ import os
+ import re
+ from pathlib import Path
+-from typing import Self
++from typing_extensions import Self
+ 
+ import psutil
+ from horde_model_reference import resolve_weights_root
+diff --git a/hordelib/shared_model_manager.py b/hordelib/shared_model_manager.py
+index 29da251..a5d1567 100644
+--- a/hordelib/shared_model_manager.py
++++ b/hordelib/shared_model_manager.py
+@@ -2,7 +2,7 @@
+ import asyncio
+ from collections.abc import Iterable
+ from multiprocessing.synchronize import Lock as multiprocessing_lock
+-from typing import Self
++from typing_extensions import Self
+ 
+ import torch
+ from horde_model_reference import MODEL_REFERENCE_CATEGORY, ModelReferenceManager, PrefetchStrategy
+diff --git a/pyproject.toml b/pyproject.toml
+index baa3bfe..4b07b4f 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -11,7 +11,7 @@ authors = [
+     {name = "Jug", email = "jugdev@proton.me"},
+ ]
+ readme = "README.md"
+-requires-python = ">=3.12"
++requires-python = ">=3.10"
+ license = { file="LICENSE" }
+ classifiers = [
+     "Programming Language :: Python :: 3",
+@@ -44,7 +44,7 @@ dependencies = [
+     "horde_model_reference>=5.1.1,<6.0.0",
+     "horde-sdk>=0.20.1",
+     "kornia>=0.7.1",
+-    "logfire[system-metrics]==4.14.2",
++    "logfire[system-metrics]==4.6.0",
+     "loguru>=0.7.3",
+     "lpips>=0.1.4",
+     "matplotlib>=3.10.9",
+@@ -53,15 +53,16 @@ dependencies = [
+     "open-clip-torch>=2.32.0",
+     "opencv-contrib-python>=4.11.0.86",
+     "opencv-python>=4.11.0.86",
+-    "opentelemetry-instrumentation-aiohttp-client>=0.59b0",
+-    "opentelemetry-instrumentation-requests>=0.59b0",
++    "opentelemetry-instrumentation-aiohttp-client==0.48b0",
++    "opentelemetry-instrumentation-requests==0.48b0",
+     "pillow",
+     "psutil",
+     "pydantic~=2.0",
+     "pydantic-settings~=2.0",
+     "pynvml>=13.0.1",
+     "python-dotenv>=1.2.1",
+-    "pytorch-lightning>=2.5.6",
++    "protobuf<5",
++    "pytorch-lightning==2.0.9",
+     "pyyaml",
+     "qrcode==7.4.2",
+     "rembg[cpu]>=2.0.67",
+@@ -78,10 +79,11 @@ dependencies = [
+     "strenum>=0.4.15",
+     "timm==0.9.16",
+     "tokenizers>=0.13.3",
+-    "torchaudio==2.9.1",
++    "torch==2.1.0a0+git7bcf7da",
++    "torchaudio==2.1.0+6ea1133",
+     "torchdiffeq>=0.2.5",
+     "torchsde",
+-    "torchvision==0.24.1",
++    "torchvision==0.16.0+fbb4cc5",
+     "tqdm",
+     "transformers>=4.50.3",
+     "typing-extensions>=4.15.0",
+diff --git a/tests/installation/test_installer.py b/tests/installation/test_installer.py
+index b074766..89beff2 100644
+--- a/tests/installation/test_installer.py
++++ b/tests/installation/test_installer.py
+@@ -5,7 +5,7 @@ from pathlib import Path
+ 
+ import pytest
+ 
+-from hordelib.installation.installer import EnvironmentInstaller, GitCommandError, _run_git
++from hordelib.installation.installer import EnvironmentInstaller, GitCommandError, _ensure_git_patch, _run_git
+ from hordelib.installation.manifest import ComfyEnvironmentManifest, CustomNodeSpec
+ 
+ 
+@@ -20,7 +20,8 @@ def fake_upstream(tmp_path: Path) -> tuple[Path, str, str]:
+     """A local 'upstream' repo with two commits; returns (path, first_sha, second_sha)."""
+     upstream = tmp_path / "upstream"
+     upstream.mkdir()
+-    _git(["init", "--initial-branch=master"], upstream)
++    _git(["init"], upstream)
++    _git(["symbolic-ref", "HEAD", "refs/heads/master"], upstream)
+     _git(["config", "user.email", "test@example.com"], upstream)
+     _git(["config", "user.name", "Test"], upstream)
+     # Throwaway fixture repo: don't inherit GPG signing from the developer's global config
+@@ -110,3 +111,17 @@ class TestGitHelpers:
+     def test_run_git_raises_on_failure(self, tmp_path: Path):
+         with pytest.raises(GitCommandError):
+             _run_git(["rev-parse", "HEAD"], tmp_path)  # not a repo
++
++    def test_ensure_git_patch_applies_once(self, tmp_path: Path, fake_upstream):
++        upstream, _first_sha, second_sha = fake_upstream
++        patch_file = tmp_path / "change.patch"
++
++        _git(["reset", "--hard", second_sha], upstream)
++        (upstream / "file.txt").write_text("patched\n")
++        patch_file.write_text(_git(["diff", "--binary"], upstream) + "\n")
++        _git(["reset", "--hard", second_sha], upstream)
++
++        _ensure_git_patch(upstream, patch_file)
++        _ensure_git_patch(upstream, patch_file)
++
++        assert (upstream / "file.txt").read_text() == "patched\n"
+diff --git a/tests/testing_shared_functions.py b/tests/testing_shared_functions.py
+index 5b89722..23c0332 100644
+--- a/tests/testing_shared_functions.py
++++ b/tests/testing_shared_functions.py
+@@ -3,12 +3,13 @@ from collections.abc import Iterable
+ from dataclasses import dataclass
+ from enum import Enum, auto
+ from pathlib import Path
++from typing import TypeAlias
+ 
+ import PIL.Image
+ import pytest
+ from loguru import logger
+ 
+-type FilePathOrPILImage = str | Path | PIL.Image.Image
++FilePathOrPILImage: TypeAlias = str | Path | PIL.Image.Image
+ 
+ from hordelib.utils.distance import (
+     CosineSimilarityResult,
+diff --git a/hordelib/installation/patches/comfyui-torch21.patch b/hordelib/installation/patches/comfyui-torch21.patch
+new file mode 100644
+index 0000000..2635f66
+--- /dev/null
++++ b/hordelib/installation/patches/comfyui-torch21.patch
+@@ -0,0 +1,23 @@
++diff --git a/comfy/utils.py b/comfy/utils.py
++--- a/comfy/utils.py
+++++ b/comfy/utils.py
++@@ -73,12 +73,15 @@ _TYPES = {
++     "F8_E4M3": torch.float8_e4m3fn,
++     "F8_E5M2": torch.float8_e5m2,
++     "C64": torch.complex64,
++-
++-    "U64": torch.uint64,
++-    "U32": torch.uint32,
++-    "U16": torch.uint16,
++ }
++ 
+++# PyTorch releases before 2.3 do not expose unsigned dtypes wider than uint8.
+++# Keep those safetensors formats unavailable instead of breaking ComfyUI import.
+++for safetensors_name, torch_name in (("U64", "uint64"), ("U32", "uint32"), ("U16", "uint16")):
+++    torch_dtype = getattr(torch, torch_name, None)
+++    if torch_dtype is not None:
+++        _TYPES[safetensors_name] = torch_dtype
+++
++ def load_safetensors(ckpt):
++     import comfy_aimdo.model_mmap
++ 
+diff --git a/hordelib/utils/torch_compat.py b/hordelib/utils/torch_compat.py
+new file mode 100644
+index 0000000..86b1318
+--- /dev/null
++++ b/hordelib/utils/torch_compat.py
+@@ -0,0 +1,148 @@
++"""Compatibility helpers for supported legacy PyTorch builds."""
++
++from collections.abc import Callable
++from types import SimpleNamespace
++from typing import Any
++
++
++def install_torch_compat() -> None:
++    """Install the compatibility surface required by the pinned ComfyUI tree."""
++    install_compiler_compat()
++    install_custom_op_compat()
++    install_serialization_compat()
++    install_rms_norm_compat()
++
++
++def install_compiler_compat() -> None:
++    """Backport ``torch.compiler.is_compiling`` using Torch 2.1's Dynamo API."""
++    import torch
++
++    compiler = getattr(torch, "compiler", None)
++    if compiler is None:
++        compiler = SimpleNamespace()
++        torch.compiler = compiler
++    if hasattr(compiler, "is_compiling"):
++        return
++
++    dynamo = getattr(torch, "_dynamo", None)
++    if dynamo is None:
++        import importlib
++
++        dynamo = importlib.import_module("torch._dynamo")
++
++    compiler.is_compiling = dynamo.is_compiling
++
++
++def install_custom_op_compat() -> None:
++    """Provide the small ``torch.library.custom_op`` surface used by Comfy Kitchen.
++
++    JetPack 5's NVIDIA PyTorch 2.1 build predates ``torch.library.custom_op``.
++    Comfy Kitchen 0.2.10 uses custom ops only as dispatch wrappers around its
++    registered eager/CUDA implementations, so direct call-through preserves its
++    runtime behavior while fake/meta registration remains unavailable.
++    """
++    import torch
++
++    if hasattr(torch.library, "custom_op"):
++        return
++
++    def custom_op(qualified_name: str, *, mutates_args: tuple[str, ...] = (), **_: Any) -> Callable:
++        del mutates_args
++        namespace, operation_name = qualified_name.split("::", 1)
++
++        def decorate(function: Callable) -> Callable:
++            def register_fake(fake_function: Callable) -> Callable:
++                return fake_function
++
++            function.register_fake = register_fake  # type: ignore[attr-defined]
++            setattr(getattr(torch.ops, namespace), operation_name, function)
++            return function
++
++        return decorate
++
++    torch.library.custom_op = custom_op  # type: ignore[attr-defined]
++
++
++def install_serialization_compat() -> None:
++    """Backport the safe-global registration API used by modern ComfyUI.
++
++    PyTorch 2.1 loads full pickles by default, so its deserializer does not need
++    the allowlist introduced for newer ``weights_only`` defaults. A no-op keeps
++    ComfyUI import-compatible without changing the legacy deserialization path.
++    """
++    import torch
++
++    if hasattr(torch.serialization, "add_safe_globals"):
++        return
++
++    def add_safe_globals(safe_globals: list[Any]) -> None:
++        del safe_globals
++
++    torch.serialization.add_safe_globals = add_safe_globals  # type: ignore[attr-defined]
++
++
++def install_rms_norm_compat() -> None:
++    """Backport the RMSNorm module and functional API introduced after Torch 2.1."""
++    import torch
++
++    if not hasattr(torch.nn.functional, "rms_norm"):
++
++        def rms_norm(input, normalized_shape, weight=None, eps=None):
++            if isinstance(normalized_shape, int):
++                normalized_shape = (normalized_shape,)
++            else:
++                normalized_shape = tuple(normalized_shape)
++            if eps is None:
++                eps = torch.finfo(input.dtype).eps
++            dimensions = tuple(range(-len(normalized_shape), 0))
++            output = input * torch.rsqrt(input.square().mean(dim=dimensions, keepdim=True) + eps)
++            if weight is not None:
++                output = output * weight
++            return output
++
++        torch.nn.functional.rms_norm = rms_norm  # type: ignore[attr-defined]
++
++    if hasattr(torch.nn, "RMSNorm"):
++        return
++
++    class RMSNorm(torch.nn.Module):
++        __constants__ = ["normalized_shape", "eps", "elementwise_affine"]
++
++        def __init__(
++            self,
++            normalized_shape,
++            eps=None,
++            elementwise_affine=True,
++            device=None,
++            dtype=None,
++        ) -> None:
++            super().__init__()
++            if isinstance(normalized_shape, int):
++                normalized_shape = (normalized_shape,)
++            self.normalized_shape = tuple(normalized_shape)
++            self.eps = eps
++            self.elementwise_affine = elementwise_affine
++            if elementwise_affine:
++                self.weight = torch.nn.Parameter(
++                    torch.empty(self.normalized_shape, device=device, dtype=dtype),
++                )
++            else:
++                self.register_parameter("weight", None)
++            self.reset_parameters()
++
++        def reset_parameters(self) -> None:
++            if self.weight is not None:
++                torch.nn.init.ones_(self.weight)
++
++        def forward(self, input):
++            return torch.nn.functional.rms_norm(
++                input,
++                self.normalized_shape,
++                self.weight,
++                self.eps,
++            )
++
++        def extra_repr(self) -> str:
++            return f"{self.normalized_shape}, eps={self.eps}, elementwise_affine={self.elementwise_affine}"
++
++    torch.nn.RMSNorm = RMSNorm  # type: ignore[attr-defined]
+diff --git a/tests/test_torch_compat.py b/tests/test_torch_compat.py
+new file mode 100644
+index 0000000..2034024
+--- /dev/null
++++ b/tests/test_torch_compat.py
+@@ -0,0 +1,67 @@
++"""Tests for the JetPack 5 PyTorch compatibility surface."""
++
++import sys
++from types import SimpleNamespace
++
++from hordelib.utils.torch_compat import install_torch_compat
++
++
++def test_install_torch_compat_adds_legacy_surfaces(monkeypatch) -> None:
++    def dynamo_is_compiling() -> bool:
++        return False
++
++    torch = SimpleNamespace(
++        _dynamo=SimpleNamespace(is_compiling=dynamo_is_compiling),
++        compiler=SimpleNamespace(),
++        library=SimpleNamespace(),
++        nn=SimpleNamespace(RMSNorm=object(), functional=SimpleNamespace(rms_norm=object())),
++        ops=SimpleNamespace(comfy_kitchen=SimpleNamespace()),
++        serialization=SimpleNamespace(),
++    )
++    monkeypatch.setitem(sys.modules, "torch", torch)
++
++    install_torch_compat()
++
++    @torch.library.custom_op("comfy_kitchen::probe", mutates_args=())
++    def probe(value):
++        return value + 1
++
++    @probe.register_fake
++    def probe_fake(value):
++        return value
++
++    assert torch.ops.comfy_kitchen.probe(4) == 5
++    assert probe_fake(4) == 4
++    assert torch.compiler.is_compiling is dynamo_is_compiling
++    assert torch.serialization.add_safe_globals([object]) is None
++
++
++def test_install_torch_compat_preserves_native_surfaces(monkeypatch) -> None:
++    native_is_compiling = object()
++    native_custom_op = object()
++    native_add_safe_globals = object()
++    torch = SimpleNamespace(
++        compiler=SimpleNamespace(is_compiling=native_is_compiling),
++        library=SimpleNamespace(custom_op=native_custom_op),
++        nn=SimpleNamespace(RMSNorm=object(), functional=SimpleNamespace(rms_norm=object())),
++        ops=SimpleNamespace(),
++        serialization=SimpleNamespace(add_safe_globals=native_add_safe_globals),
++    )
++    monkeypatch.setitem(sys.modules, "torch", torch)
++
++    install_torch_compat()
++
++    assert torch.compiler.is_compiling is native_is_compiling
++    assert torch.library.custom_op is native_custom_op
++    assert torch.serialization.add_safe_globals is native_add_safe_globals
++
++
++def test_install_torch_compat_provides_rms_norm() -> None:
++    import torch
++
++    install_torch_compat()
++    layer = torch.nn.RMSNorm(4, eps=1e-6)
++    value = torch.tensor([[1.0, 2.0, 3.0, 4.0]])
++
++    expected = value * torch.rsqrt(value.square().mean(dim=-1, keepdim=True) + 1e-6)
++    assert torch.allclose(layer(value), expected)

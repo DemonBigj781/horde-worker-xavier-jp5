@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import override
+from typing_extensions import override
 
 from horde_model_reference.meta_consts import KNOWN_IMAGE_GENERATION_BASELINE
 from horde_model_reference.model_reference_records import ImageGenerationModelRecord

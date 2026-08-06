@@ -25,3 +25,9 @@ horde-worker.cmd
 horde-worker.sh
 preload-models.cmd
 preload-models.sh
+build-xformers-jetson-jp5.sh
+install-jetson-jp5.sh
+start-jetson-jp5.sh
+requirements.jetson-jp5.txt
+jetson-wheel-checksums.sha256
+jetson-patches
