@@ -45,8 +45,10 @@ models, workers, and simulation packages.
   wheel bundles a renamed second copy that can exhaust glibc's static TLS block
   during the Horde Safety import chain. Use the checksum-pinned Xavier wheel
   repaired to link `libgomp.so.1` instead.
-- **FLUX decode:** A monolithic graph can retain every loader output. Add
-  stage-scoped ownership and tiled VAE decode before advertising FLUX.
+- **FLUX decode:** The standalone controlled-release probe demonstrates one
+  lower-retention execution shape, but it is not part of the worker runtime.
+  Before advertising FLUX, the normal v13 worker path must generate an image,
+  pass Horde safety, and submit it successfully under operator control.
 
 ## Port sequence
 
@@ -56,7 +58,7 @@ models, workers, and simulation packages.
 - [x] Record unified-memory and NvMap behavior.
 - [x] Keep FLUX excluded from production advertisement.
 - [x] Preserve xFormers as the production backend.
-- [x] Add a repeatable staged FLUX probe.
+- [x] Add a repeatable staged FLUX probe that remains outside the runtime.
 
 ### P1: make the v13 tree buildable without pretending it is runnable
 

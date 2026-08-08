@@ -9,11 +9,12 @@ This is the main integration repository for running Horde Worker v13 on NVIDIA J
 - The tested xFormers and legacy Flash Attention paths agree numerically in the compatibility probe.
 - The Python 3.10 compatibility port is source tracked.
 - Full network-connected v13 production operation has not been proven.
-- FLUX and large SDXL jobs still require end-to-end component-lifetime validation inside Horde Engine.
+- FLUX and large SDXL jobs still require end-to-end component-lifetime validation through the normal worker path.
+- The controlled-release FLUX probe is a standalone diagnostic, not a runtime handler. It remains outside the worker until an operator-run v13 image generates, passes Horde safety, and submits successfully.
 
 ## Safety boundary
 
-This port does not bypass the Horde safety process or replace the bridge protocol. Model loading, inference, safety inspection, and submission must remain compatible with the established worker contract. Automated development checks must not launch a production worker or submit network jobs; the operator performs physical end-to-end runs manually.
+This port does not bypass the Horde safety process or replace the bridge protocol. Image pop requests identify this fork as `AI Horde Worker Xavier JP5` and point to this repository. Model loading, inference, safety inspection, and submission must remain compatible with the established worker contract. Automated development checks must not launch a production worker or submit network jobs; the operator performs physical end-to-end runs manually.
 
 ## Release gates
 
