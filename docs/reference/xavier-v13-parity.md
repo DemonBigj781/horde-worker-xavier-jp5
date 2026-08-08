@@ -45,6 +45,10 @@ models, workers, and simulation packages.
   wheel bundles a renamed second copy that can exhaust glibc's static TLS block
   during the Horde Safety import chain. Use the checksum-pinned Xavier wheel
   repaired to link `libgomp.so.1` instead.
+- **Memory accounting:** Preserve the v13 resource model during this port. The
+  v10-era measurement heuristic is known to be flawed; a newer-memory audit is
+  deferred and must compare against later worker behavior rather than restoring
+  old logic.
 - **FLUX decode:** The standalone controlled-release probe demonstrates one
   lower-retention execution shape, but it is not part of the worker runtime.
   Before advertising FLUX, the normal v13 worker path must generate an image,
@@ -111,11 +115,25 @@ the host recovered. Direct regressions now cover the popper's RAM hold,
 drain-release behavior, supervisor-requested process replacement, and
 supervisor-requested graceful shutdown.
 
+The clean v13 trial checkout at
+`/mnt/xavier-ssd/build/horde-worker-v13.16.7-xavier-jp5-candidate-20260808-r1`
+repeated this gate after the custom image bridge identity was added: 544 tests
+passed, `pip check` reported no broken requirements, and the worker imported as
+version `13.16.7` with Horde Engine `3.11.0`, Horde SDK `0.22.4`, and model
+reference `7.0.2`. Its production-derived configuration explicitly disables
+large models and skips `Flux.1-Schnell fp8 (Compact)`. The v12 worker remained
+running and no v13 worker was launched. The test log is stored at
+`/mnt/xavier-ssd/build/logs/horde-worker-v13.16.7-xavier-jp5-candidate-tests-20260808.log`.
+
 ### P3: restore accelerator capabilities
 
 - [x] Re-run the exact FLUX head-dimension-128 xFormers and FlashAttention
   compatibility probes.
-- [ ] Integrate staged FLUX component ownership into the normal pipeline.
+- [ ] Complete an operator-controlled v13 image trial through generation,
+  Horde safety, and submission before changing lifecycle behavior.
+- [ ] After the baseline trial, measure the normal worker's selective
+  load/unload behavior and decide whether an alternative lifecycle handler is
+  necessary. Keep that handler outside the runtime until then.
 - [ ] Require 1024x1024 tiled VAE completion with measured release at both stage
   boundaries.
 - [ ] Soak supported SDXL jobs, LoRAs, img2img, safety, and post-processing.

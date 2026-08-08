@@ -76,8 +76,10 @@ to overwrite an existing output.
 Xavier's 32 GB is one physical pool shared by CPU tensors, CUDA tensors, NvMap,
 the kernel, and the rest of the process. Follow these rules:
 
-1. Treat system available RAM as the admission signal. CUDA free-memory figures
-   alone are insufficient.
+1. Preserve the v13 worker's resource-accounting model. Do not restore the
+   v10-era memory heuristic as the source of truth; its measurements are known
+   to be flawed. System available RAM and CUDA free-memory figures are useful
+   evidence on Xavier, but neither is sufficient alone.
 2. Do not count swap or zRAM as GPU-allocatable capacity. NvMap cannot satisfy a
    required mapped allocation from swap.
 3. Do not expect `pipe.to("cpu")` to reduce physical usage on unified memory.
@@ -89,9 +91,10 @@ the kernel, and the rest of the process. Follow these rules:
    a kernel `SIGKILL` and should not continue in a poisoned CUDA process.
 
 Generic ComfyUI unload extensions usually wrap the same cache-release calls.
-They can move weights off CUDA, but they cannot delete references retained by
-HordeLib's graph executor. Recursive "delete any object" nodes are unsafe for a
-production worker because they mutate shared objects in place.
+The standalone probe demonstrates one explicit ownership sequence; it does not
+show that Horde Engine lacks selective model loading or unloading. Recursive
+"delete any object" nodes remain unsafe for a production worker because they
+mutate shared objects in place.
 
 ## FLUX lifetime checkpoints
 
@@ -104,8 +107,10 @@ The validated FLUX path separates one generation into three ownership stages:
 - **C, decode:** Keep only the latent and VAE live. Use tiled decode, then
   destroy both.
 
-The August 7, 2026 validation generated a 1024x1024 image with four FLUX Schnell
-steps and a 512-pixel VAE tile with 64-pixel overlap:
+The August 7, 2026 standalone validation generated a 1024x1024 image with four
+FLUX Schnell steps and a 512-pixel VAE tile with 64-pixel overlap. These values
+are diagnostic snapshots from the probe, not authoritative worker admission
+measurements:
 
 | Checkpoint | Available RAM | Process RSS |
 | --- | ---: | ---: |
@@ -124,9 +129,11 @@ diagnostic and does not advertise FLUX to the Horde.
 
 ## Production policy
 
-Until staged ownership is integrated into the normal HordeLib FLUX pipeline:
+Until the normal v13 worker completes an operator-controlled image trial that
+generates, passes Horde safety, and submits successfully:
 
 - Keep FLUX out of the production model advertisement and skip list exceptions.
+- Keep the alternative lifecycle handler outside the worker runtime.
 - Keep xFormers as the production attention backend.
 - Run FlashAttention only in direct compatibility tests.
 - Keep `max_threads: 1` and allow the worker's memory guard to recycle idle

@@ -5,7 +5,7 @@ This is the main integration repository for running Horde Worker v13 on NVIDIA J
 ## Current state
 
 - The Xavier dependency environment installs and passes `pip check`.
-- A focused physical-device process-management suite has passed 543 tests.
+- A focused physical-device process-management suite has passed 544 tests.
 - The tested xFormers and legacy Flash Attention paths agree numerically in the compatibility probe.
 - The Python 3.10 compatibility port is source tracked.
 - Full network-connected v13 production operation has not been proven.
