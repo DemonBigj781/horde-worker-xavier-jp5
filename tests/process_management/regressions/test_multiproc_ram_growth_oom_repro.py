@@ -160,6 +160,27 @@ class TestLoneOverCeilingProcessIsReclaimed:
             "a busy over-ceiling process under the RAM floor must be marked draining so it stops taking new work"
         )
 
+    def test_pop_hold_clears_after_busy_process_finishes_draining(self) -> None:
+        """A recovered host must resume pops once the previously over-ceiling process becomes idle."""
+        proc = _resident_idle_proc(1, "AlbedoBase XL (SDXL)", ram_bytes=_OVER_CEILING_RAM_BYTES)
+        proc.last_process_state = HordeProcessState.INFERENCE_STARTING
+        process_map = ProcessMap({1: proc})
+        scheduler = _ram_pressured_scheduler(process_map)
+
+        scheduler._govern_ram_pressure_if_pressured()
+
+        assert scheduler._state.ram_pressure_pop_hold is True
+        assert 1 in scheduler._processes_draining_for_ram
+
+        proc.last_process_state = HordeProcessState.WAITING_FOR_JOB
+        proc.ram_usage_bytes = 2_000_000_000
+        scheduler._measured_available_ram_mb = lambda: _TOTAL_RAM_MB * 0.7  # type: ignore[method-assign]
+
+        scheduler._govern_ram_pressure_if_pressured()
+
+        assert scheduler._processes_draining_for_ram == set()
+        assert scheduler._state.ram_pressure_pop_hold is False
+
 
 class TestPopHeldBeforeTheFloorToAvoidStaleJobs:
     """Popping must pause as RAM *approaches* the floor, not only once it is breached.

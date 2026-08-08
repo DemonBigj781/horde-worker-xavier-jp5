@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+
+from strenum import StrEnum
 import os
 import shutil
 from pathlib import Path
@@ -72,7 +74,7 @@ class HealthStatus(enum.IntEnum):
         }[self]
 
 
-class WorkerPhase(enum.StrEnum):
+class WorkerPhase(StrEnum):
     """The worker's headline lifecycle phase."""
 
     STOPPED = "stopped"

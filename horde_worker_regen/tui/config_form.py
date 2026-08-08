@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+
+from strenum import StrEnum
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -36,7 +38,7 @@ DREAMER_NAME_RESERVED_DEFAULT = "An Awesome Dreamer"
 ALCHEMIST_NAME_RESERVED_DEFAULT = "An Awesome Alchemist"
 
 
-class FieldKind(enum.StrEnum):
+class FieldKind(StrEnum):
     """How a config field is edited and coerced."""
 
     BOOL = "bool"

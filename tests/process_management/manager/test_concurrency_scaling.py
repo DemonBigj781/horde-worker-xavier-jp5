@@ -6,7 +6,13 @@ from unittest.mock import Mock
 
 from horde_worker_regen.process_management.config.runtime_config import RuntimeConfig
 from horde_worker_regen.process_management.ipc.supervisor_channel import SupervisorCommand, SupervisorControlMessage
-from tests.process_management.conftest import make_mock_bridge_data, make_testable_process_manager
+from horde_worker_regen.process_management.lifecycle.horde_process import HordeProcessType
+from horde_worker_regen.process_management.lifecycle.process_map import ProcessMap
+from tests.process_management.conftest import (
+    make_mock_bridge_data,
+    make_mock_process_info,
+    make_testable_process_manager,
+)
 
 
 class TestRuntimeConfigConcurrency:
@@ -82,6 +88,48 @@ class TestManagerSetConcurrency:
         )
         assert manager.max_concurrent_inference_processes == 1
         manager._process_lifecycle.scale_inference_processes.assert_called_once_with(2)
+
+
+class TestManagerSupervisorLifecycleCommands:
+    """Supervisor lifecycle commands must route into the worker's normal process controls."""
+
+    def test_restart_process_routes_to_inference_replacement(self) -> None:
+        """A valid inference-process id is replaced through ProcessLifecycle."""
+        manager = make_testable_process_manager()
+        process_info = make_mock_process_info(7, process_type=HordeProcessType.INFERENCE)
+        manager._process_map = ProcessMap({7: process_info})
+        manager._process_lifecycle = Mock()
+
+        manager._apply_supervisor_command(
+            SupervisorControlMessage(command=SupervisorCommand.RESTART_PROCESS, process_id=7),
+        )
+
+        manager._process_lifecycle._replace_inference_process.assert_called_once_with(process_info)
+
+    def test_restart_process_ignores_missing_or_non_inference_ids(self) -> None:
+        """Malformed restart requests must not replace an arbitrary worker process."""
+        manager = make_testable_process_manager()
+        safety_info = make_mock_process_info(9, process_type=HordeProcessType.SAFETY)
+        manager._process_map = ProcessMap({9: safety_info})
+        manager._process_lifecycle = Mock()
+
+        manager._apply_supervisor_command(SupervisorControlMessage(command=SupervisorCommand.RESTART_PROCESS))
+        manager._apply_supervisor_command(
+            SupervisorControlMessage(command=SupervisorCommand.RESTART_PROCESS, process_id=9),
+        )
+
+        manager._process_lifecycle._replace_inference_process.assert_not_called()
+
+    def test_shutdown_routes_to_graceful_and_timed_shutdown(self) -> None:
+        """Supervisor shutdown starts the normal drain plus its bounded force-kill backstop."""
+        manager = make_testable_process_manager()
+        manager._shutdown = Mock()
+        manager._start_timed_shutdown = Mock()
+
+        manager._apply_supervisor_command(SupervisorControlMessage(command=SupervisorCommand.SHUTDOWN))
+
+        manager._shutdown.assert_called_once_with()
+        manager._start_timed_shutdown.assert_called_once_with()
 
 
 class TestInstallBenchmarkScenario:

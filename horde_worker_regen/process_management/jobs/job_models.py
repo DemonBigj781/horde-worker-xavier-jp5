@@ -5,7 +5,7 @@ from __future__ import annotations
 import enum
 import random
 from enum import auto
-from typing import override
+from typing_extensions import override
 
 from horde_sdk.ai_horde_api import GENERATION_STATE
 from horde_sdk.ai_horde_api.apimodels import ImageGenerateJobPopResponse

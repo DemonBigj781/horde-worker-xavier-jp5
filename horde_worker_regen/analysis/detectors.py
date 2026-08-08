@@ -15,6 +15,8 @@ findings rather than aborting the report.
 from __future__ import annotations
 
 import enum
+
+from strenum import StrEnum
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -138,7 +140,7 @@ _SOFT_RESET_FLAP_THRESHOLD = 2
 _RECOVERY_STORM_THRESHOLD = 5
 
 
-class Severity(enum.StrEnum):
+class Severity(StrEnum):
     """How urgent a finding is; also its sort key (critical first)."""
 
     CRITICAL = "critical"

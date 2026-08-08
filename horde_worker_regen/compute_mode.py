@@ -24,6 +24,8 @@ bootstrap also honours, takes precedence so a one-off override needs no file edi
 from __future__ import annotations
 
 import enum
+
+from strenum import StrEnum
 import os
 from pathlib import Path
 
@@ -37,7 +39,7 @@ _CPU_TOKEN = "cpu"
 _ACCELERATED_KINDS = frozenset({"cuda", "rocm", "xpu", "npu", "mlu", "mps", "directml"})
 
 
-class ComputeMode(enum.StrEnum):
+class ComputeMode(StrEnum):
     """The compute backend an install is configured to use."""
 
     CPU = "cpu"

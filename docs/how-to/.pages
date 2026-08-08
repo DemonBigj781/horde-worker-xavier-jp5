@@ -8,6 +8,7 @@ nav:
     - run-multiple-gpus.md
     - add-custom-models.md
     - run-on-amd-rocm.md
+    - run-on-jetson-xavier.md
     - choose-a-pytorch-build.md
     - run-in-docker.md
     - add-an-alchemy-mode.md

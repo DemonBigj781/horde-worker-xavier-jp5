@@ -1,6 +1,6 @@
 """Closed value sets for the benchmark ramp: tiers, stages, axes, outcomes, and findings.
 
-Centralising these as :class:`~enum.StrEnum` keeps the ladder, criteria, controller, and report
+Centralising these as :class:`~StrEnum` keeps the ladder, criteria, controller, and report
 free of the magic strings they previously compared against (``level.axis == "controlnet"``), so a
 typo is a load-time error and the valid set is discoverable. Every member is a ``str`` at runtime,
 so the enums serialize to their value in JSON and round-trip through the pydantic models that store
@@ -9,7 +9,9 @@ them (``RampLevel``, ``LevelReport``, ``Finding``) without custom encoders.
 
 from __future__ import annotations
 
-from enum import StrEnum, auto
+from enum import auto
+
+from strenum import StrEnum
 
 
 class BenchTier(StrEnum):

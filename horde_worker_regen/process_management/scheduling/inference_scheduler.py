@@ -1883,12 +1883,25 @@ class InferenceScheduler:
         was under pressure. Clears the one-shot notice when the host is healthy.
         """
         verdict = self._ram_pressure_verdict()
+        self._prune_ram_drain_set()
         self._update_ram_pop_hold(verdict)
         if not verdict.under_pressure:
             self._ram_pressure_notified = False
             return False
         self._govern_ram_pressure(verdict)
         return True
+
+    def _prune_ram_drain_set(self) -> None:
+        """Drop completed or obsolete RAM-drain markers before deciding whether pops remain held."""
+        ceiling_mb = self._ram_per_process_ceiling_mb()
+        for process_id in tuple(self._processes_draining_for_ram):
+            process_info = self._process_map.get(process_id)
+            if process_info is None or process_info.process_type != HordeProcessType.INFERENCE:
+                self._processes_draining_for_ram.discard(process_id)
+                continue
+            used_mb = process_info.ram_usage_bytes / (1024 * 1024)
+            if not process_info.is_process_busy() or ceiling_mb is None or used_mb < ceiling_mb:
+                self._processes_draining_for_ram.discard(process_id)
 
     def _update_ram_pop_hold(self, verdict: RamPressureVerdict) -> None:
         """Set the soft, pre-floor pop hold when RAM is approaching the danger floor or a drain is in flight.

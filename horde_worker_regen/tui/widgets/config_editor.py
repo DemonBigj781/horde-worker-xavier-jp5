@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import contextlib
 import enum
+
+from strenum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -79,7 +81,7 @@ def _normalise_form(value: str) -> str:
     return value.replace("-", "_").lower()
 
 
-class ConfigLeaveChoice(enum.StrEnum):
+class ConfigLeaveChoice(StrEnum):
     """The user's response to the "you have unsaved config edits" warning when leaving the Config tab."""
 
     LEAVE = "leave"

@@ -152,6 +152,23 @@ class TestApiJobPopGuardClauses:
         assert state.last_pop_no_jobs_available is False
         assert state.torch_build_cpu_only is True
 
+    async def test_ram_pressure_hold_blocks_api_pop_and_records_reason(self) -> None:
+        """The scheduler's soft RAM hold must stop API intake until the host recovers."""
+        state = WorkerState(ram_pressure_pop_hold=True, last_pop_no_jobs_available=True)
+        session = Mock()
+        session.submit_request = AsyncMock()
+        popper = _make_popper(
+            state=state,
+            process_map=_make_process_map_with_available_processes(),
+            horde_client_session=session,
+        )
+
+        await popper.api_job_pop()
+
+        session.submit_request.assert_not_awaited()
+        assert state.last_pop_no_jobs_available is False
+        assert state.last_pop_skipped_reasons["ram_pressure"] == 1
+
     async def test_too_many_consecutive_failures_blocks_pop(self) -> None:
         """Active failure pause prevents any pop attempt."""
         state = WorkerState(

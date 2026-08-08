@@ -13,6 +13,8 @@ the recovery story off of.
 from __future__ import annotations
 
 import enum
+
+from strenum import StrEnum
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -42,7 +44,7 @@ _SUPERVISOR_SHUTDOWN_RE = re.compile(r"Supervisor requested shutdown")
 _CLEAN_EXIT_RE = re.compile(r"Worker has finished working|Shutting down process manager")
 
 
-class SessionEndReason(enum.StrEnum):
+class SessionEndReason(StrEnum):
     """How a worker session terminated, as read from its final log lines."""
 
     CLEAN_EXIT = "clean_exit"

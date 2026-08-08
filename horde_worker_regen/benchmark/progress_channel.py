@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import abc
 import enum
+
+from strenum import StrEnum
 import json
 import time
 from pathlib import Path
@@ -42,7 +44,7 @@ reader simply ignores the additions.
 """
 
 
-class ProgressEventKind(enum.StrEnum):
+class ProgressEventKind(StrEnum):
     """Discriminates the kind of a benchmark progress event."""
 
     RAMP_STARTING = "ramp_starting"

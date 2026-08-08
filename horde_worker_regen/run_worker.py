@@ -15,7 +15,7 @@ import multiprocessing
 import os
 from multiprocessing.connection import Connection
 from multiprocessing.context import BaseContext
-from typing import override
+from typing_extensions import override
 
 import regex as re
 from loguru import logger

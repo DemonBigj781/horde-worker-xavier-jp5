@@ -1,0 +1,501 @@
+diff --git a/pyproject.toml b/pyproject.toml
+index c5ccfa7..4458662 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -10,7 +10,7 @@ authors = [
+     {name = "db0", email = "mail@dbzer0.com"},
+ ]
+ readme = "README.md"
+-requires-python = ">=3.12"
++requires-python = ">=3.10"
+ license = { file="LICENSE" }
+ classifiers = [
+     "Programming Language :: Python :: 3",
+diff --git a/src/horde_model_reference/analytics/base_cache.py b/src/horde_model_reference/analytics/base_cache.py
+index 085561d..28be34e 100644
+--- a/src/horde_model_reference/analytics/base_cache.py
++++ b/src/horde_model_reference/analytics/base_cache.py
+@@ -11,7 +11,9 @@ import json
+ import time
+ from abc import ABC, abstractmethod
+ from threading import RLock
+-from typing import TYPE_CHECKING, ClassVar, Self, TypeVar
++from typing import TYPE_CHECKING, ClassVar, Generic, TypeVar
++
++from typing_extensions import Self
+ 
+ from loguru import logger
+ from pydantic import BaseModel
+@@ -25,7 +27,7 @@ if TYPE_CHECKING:
+ T = TypeVar("T", bound=BaseModel)
+ 
+ 
+-class RedisCache[T: BaseModel](ABC):
++class RedisCache(ABC, Generic[T]):
+     """Generic base class for Redis-backed singleton caches.
+ 
+     Provides common caching infrastructure with Redis distributed caching
+diff --git a/src/horde_model_reference/audit/events.py b/src/horde_model_reference/audit/events.py
+index cb715c8..0875e0f 100644
+--- a/src/horde_model_reference/audit/events.py
++++ b/src/horde_model_reference/audit/events.py
+@@ -3,7 +3,7 @@
+ from __future__ import annotations
+ 
+ from collections.abc import Mapping
+-from datetime import UTC, datetime
++from datetime import datetime, timezone
+ from typing import Any, overload
+ 
+ from pydantic import BaseModel, Field
+@@ -109,7 +109,7 @@ class AuditEvent(BaseModel):
+         """Create an audit event while filling defaults such as timestamp."""
+         return AuditEvent(
+             event_id=event_id,
+-            timestamp=timestamp or int(datetime.now(tz=UTC).timestamp()),
++            timestamp=timestamp or int(datetime.now(tz=timezone.utc).timestamp()),
+             domain=domain,
+             category=category,
+             model_name=model_name,
+diff --git a/src/horde_model_reference/backends/filesystem_backend.py b/src/horde_model_reference/backends/filesystem_backend.py
+index d1e10be..e2ea513 100644
+--- a/src/horde_model_reference/backends/filesystem_backend.py
++++ b/src/horde_model_reference/backends/filesystem_backend.py
+@@ -13,7 +13,9 @@ import json
+ import re
+ import time
+ from pathlib import Path
+-from typing import Any, cast, override
++from typing import Any, cast
++
++from typing_extensions import override
+ 
+ import aiofiles
+ import httpx
+diff --git a/src/horde_model_reference/backends/github_backend.py b/src/horde_model_reference/backends/github_backend.py
+index 5558202..397b047 100644
+--- a/src/horde_model_reference/backends/github_backend.py
++++ b/src/horde_model_reference/backends/github_backend.py
+@@ -10,7 +10,9 @@ from __future__ import annotations
+ import asyncio
+ from collections.abc import Coroutine
+ from pathlib import Path
+-from typing import Any, cast, override
++from typing import Any, cast
++
++from typing_extensions import override
+ 
+ import aiofiles
+ import httpx
+diff --git a/src/horde_model_reference/backends/http_backend.py b/src/horde_model_reference/backends/http_backend.py
+index b55de21..e533538 100644
+--- a/src/horde_model_reference/backends/http_backend.py
++++ b/src/horde_model_reference/backends/http_backend.py
+@@ -8,7 +8,9 @@ from __future__ import annotations
+ 
+ import json
+ from pathlib import Path
+-from typing import Any, override
++from typing import Any
++
++from typing_extensions import override
+ 
+ import httpx
+ from loguru import logger
+diff --git a/src/horde_model_reference/backends/local_readonly_backend.py b/src/horde_model_reference/backends/local_readonly_backend.py
+index 98e0576..28dc921 100644
+--- a/src/horde_model_reference/backends/local_readonly_backend.py
++++ b/src/horde_model_reference/backends/local_readonly_backend.py
+@@ -16,7 +16,9 @@ from __future__ import annotations
+ 
+ import json
+ from pathlib import Path
+-from typing import Any, override
++from typing import Any
++
++from typing_extensions import override
+ 
+ import httpx
+ from loguru import logger
+diff --git a/src/horde_model_reference/backends/redis_backend.py b/src/horde_model_reference/backends/redis_backend.py
+index 0c61bee..cf7d7d5 100644
+--- a/src/horde_model_reference/backends/redis_backend.py
++++ b/src/horde_model_reference/backends/redis_backend.py
+@@ -14,7 +14,9 @@ import threading
+ from collections.abc import Callable, Iterable
+ from pathlib import Path
+ from threading import RLock
+-from typing import Any, cast, override
++from typing import Any, cast
++
++from typing_extensions import override
+ 
+ import httpx
+ from loguru import logger
+diff --git a/src/horde_model_reference/backends/replica_backend_base.py b/src/horde_model_reference/backends/replica_backend_base.py
+index 1a4d772..2126ace 100644
+--- a/src/horde_model_reference/backends/replica_backend_base.py
++++ b/src/horde_model_reference/backends/replica_backend_base.py
+@@ -12,7 +12,9 @@ from asyncio import Lock as AsyncLock
+ from collections.abc import Callable
+ from pathlib import Path
+ from threading import RLock
+-from typing import Any, override
++from typing import Any
++
++from typing_extensions import override
+ 
+ from loguru import logger
+ 
+diff --git a/src/horde_model_reference/legacy/classes/legacy_converters.py b/src/horde_model_reference/legacy/classes/legacy_converters.py
+index 0fd186e..999d6ed 100644
+--- a/src/horde_model_reference/legacy/classes/legacy_converters.py
++++ b/src/horde_model_reference/legacy/classes/legacy_converters.py
+@@ -3,7 +3,9 @@
+ import glob
+ import json
+ from pathlib import Path
+-from typing import Any, override
++from typing import Any
++
++from typing_extensions import override
+ 
+ from loguru import logger
+ from pydantic import ValidationError
+diff --git a/src/horde_model_reference/path_consts.py b/src/horde_model_reference/path_consts.py
+index ca7d3e7..71d78cd 100644
+--- a/src/horde_model_reference/path_consts.py
++++ b/src/horde_model_reference/path_consts.py
+@@ -3,7 +3,9 @@
+ from __future__ import annotations
+ 
+ from pathlib import Path
+-from typing import ClassVar, Self
++from typing import ClassVar
++
++from typing_extensions import Self
+ from urllib.parse import urlparse
+ 
+ from loguru import logger
+diff --git a/src/horde_model_reference/pending_queue/models.py b/src/horde_model_reference/pending_queue/models.py
+index ef72841..13a36c9 100644
+--- a/src/horde_model_reference/pending_queue/models.py
++++ b/src/horde_model_reference/pending_queue/models.py
+@@ -3,7 +3,7 @@
+ from __future__ import annotations
+ 
+ from collections.abc import Collection
+-from datetime import UTC, datetime
++from datetime import datetime, timezone
+ from typing import Any
+ 
+ from pydantic import BaseModel, Field
+@@ -48,7 +48,7 @@ class PendingChangeRecord(BaseModel):
+     payload: dict[str, Any] | None = Field(default=None, description="Serialized model payload for apply job")
+     requested_by: str
+     requested_username: str
+-    requested_at: int = Field(default_factory=lambda: int(datetime.now(tz=UTC).timestamp()))
++    requested_at: int = Field(default_factory=lambda: int(datetime.now(tz=timezone.utc).timestamp()))
+     status: PendingChangeStatus = PendingChangeStatus.PENDING
+     notes: str | None = None
+ 
+@@ -80,7 +80,7 @@ class PendingChangeRecord(BaseModel):
+         "not a store-allocated integer like change_id or batch_id.",
+     )
+ 
+-    updated_at: int = Field(default_factory=lambda: int(datetime.now(tz=UTC).timestamp()))
++    updated_at: int = Field(default_factory=lambda: int(datetime.now(tz=timezone.utc).timestamp()))
+ 
+     request_metadata: dict[str, Any] | None = None
+     """Additional metadata for downstream jobs (e.g., original request body)."""
+@@ -208,7 +208,7 @@ class PendingChangeDiffPage(BaseModel):
+ 
+ def now_ts() -> int:
+     """Return the current UTC timestamp as an integer."""
+-    return int(datetime.now(tz=UTC).timestamp())
++    return int(datetime.now(tz=timezone.utc).timestamp())
+ 
+ 
+ def ensure_seq(items: Collection[int] | None) -> list[int]:
+diff --git a/src/horde_model_reference/providers/pending_provider.py b/src/horde_model_reference/providers/pending_provider.py
+index 26b5d11..639b7c5 100644
+--- a/src/horde_model_reference/providers/pending_provider.py
++++ b/src/horde_model_reference/providers/pending_provider.py
+@@ -16,7 +16,9 @@ from __future__ import annotations
+ 
+ import threading
+ import time
+-from typing import Any, override
++from typing import Any
++
++from typing_extensions import override
+ 
+ import httpx
+ from loguru import logger
+diff --git a/src/horde_model_reference/providers/static_provider.py b/src/horde_model_reference/providers/static_provider.py
+index 9eda0f6..758827a 100644
+--- a/src/horde_model_reference/providers/static_provider.py
++++ b/src/horde_model_reference/providers/static_provider.py
+@@ -11,7 +11,7 @@ directly only when records must be fetched lazily from a live/remote source.
+ from __future__ import annotations
+ 
+ from collections.abc import Mapping
+-from typing import override
++from typing_extensions import override
+ 
+ from horde_model_reference.meta_consts import MODEL_REFERENCE_CATEGORY
+ from horde_model_reference.model_reference_records import MODEL_RECORD_TYPE_LOOKUP, GenericModelRecord
+diff --git a/src/horde_model_reference/query.py b/src/horde_model_reference/query.py
+index a228d96..6583463 100644
+--- a/src/horde_model_reference/query.py
++++ b/src/horde_model_reference/query.py
+@@ -23,7 +23,9 @@ from __future__ import annotations
+ 
+ import operator
+ from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
+-from typing import Any, Literal, Protocol, Self, overload, runtime_checkable
++from typing import Any, Generic, Literal, Protocol, TypeAlias, TypeVar, overload, runtime_checkable
++
++from typing_extensions import Self
+ 
+ from horde_model_reference.meta_consts import (
+     KNOWN_IMAGE_GENERATION_BASELINE,
+@@ -45,7 +47,7 @@ from horde_model_reference.text_backend_names import (
+     has_legacy_text_backend_prefix,
+ )
+ 
+-type GenericFieldName = Literal[
++GenericFieldName: TypeAlias = Literal[
+     "record_type",
+     "name",
+     "description",
+@@ -56,7 +58,7 @@ type GenericFieldName = Literal[
+     "model_classification",
+ ]
+ 
+-type ImageGenFieldName = Literal[
++ImageGenFieldName: TypeAlias = Literal[
+     "record_type",
+     "name",
+     "description",
+@@ -79,7 +81,7 @@ type ImageGenFieldName = Literal[
+     "size_on_disk_bytes",
+ ]
+ 
+-type TextGenFieldName = Literal[
++TextGenFieldName: TypeAlias = Literal[
+     "record_type",
+     "name",
+     "description",
+@@ -100,7 +102,7 @@ type TextGenFieldName = Literal[
+     "text_model_group",
+ ]
+ 
+-type ControlNetFieldName = Literal[
++ControlNetFieldName: TypeAlias = Literal[
+     "record_type",
+     "name",
+     "description",
+@@ -212,7 +214,11 @@ def _to_hashable(field: str, value: object) -> Hashable:
+     return candidate
+ 
+ 
+-class ModelQuery[T: GenericModelRecord, F: str]:
++T = TypeVar("T", bound=GenericModelRecord)
++F = TypeVar("F", bound=str)
++
++
++class ModelQuery(Generic[T, F]):
+     """Lazy, immutable query builder over a sequence of model records.
+ 
+     Every fluent method returns a **new** instance (via ``Self``) so that
+@@ -859,7 +865,7 @@ class ControlNetQuery(ModelQuery[GenericModelRecord, ControlNetFieldName]):
+         return groups
+ 
+ 
+-def build_query[T: GenericModelRecord](
++def build_query(
+     records: dict[str, T],
+     record_type: type[T],
+     *,
+diff --git a/src/horde_model_reference/registries.py b/src/horde_model_reference/registries.py
+index 43e04f0..37fdcdc 100644
+--- a/src/horde_model_reference/registries.py
++++ b/src/horde_model_reference/registries.py
+@@ -4,14 +4,14 @@ from __future__ import annotations
+ 
+ from collections.abc import Callable, Iterable
+ from enum import Enum
+-from typing import TypeVar
++from typing import Generic, TypeVar
+ 
+ T = TypeVar("T", bound=str)
+ K = TypeVar("K", bound=str | Enum)
+ V = TypeVar("V")
+ 
+ 
+-class EnumRegistry[T]:
++class EnumRegistry(Generic[T]):
+     """Minimal registry helper for enum-like string values.
+ 
+     meta_consts.py exposes many ``register/is_known`` pairs. Centralizing the
+@@ -73,7 +73,7 @@ class EnumRegistry[T]:
+         return self._known
+ 
+ 
+-class DescriptorRegistry[K, V]:
++class DescriptorRegistry(Generic[K, V]):
+     """Registry for keyed descriptors with a rebuild hook for derived data.
+ 
+     Category/baseline registries need to invalidate and rebuild derived
+diff --git a/src/horde_model_reference/source_consts.py b/src/horde_model_reference/source_consts.py
+index 47f1972..1c9c764 100644
+--- a/src/horde_model_reference/source_consts.py
++++ b/src/horde_model_reference/source_consts.py
+@@ -14,7 +14,7 @@ import cycle.
+ from __future__ import annotations
+ 
+ from collections.abc import Sequence
+-from typing import Literal
++from typing import Literal, TypeAlias
+ 
+ HORDE_SOURCE_ID = "horde"
+ """Reserved source id for canonical horde-model-reference data.
+@@ -35,7 +35,7 @@ collision occurred.
+ RESERVED_SOURCE_IDS: frozenset[str] = frozenset({HORDE_SOURCE_ID, ANY_SOURCE})
+ """Source ids that third-party providers may not register under."""
+ 
+-type SourceOutcome = Literal["ok", "empty", "error"]
++SourceOutcome: TypeAlias = Literal["ok", "empty", "error"]
+ """The result of attempting to read a single selected source for one category.
+ 
+ * ``"ok"`` - the source contributed at least one record.
+@@ -47,7 +47,7 @@ Surfaced to consumers via :meth:`horde_model_reference.query.ModelQuery.source_s
+ so a failed source can be distinguished from a genuinely empty one.
+ """
+ 
+-type SourceSelector = str | Sequence[str]
++SourceSelector: TypeAlias = str | Sequence[str]
+ """A source selection accepted by the read/query APIs.
+ 
+ May be:
+diff --git a/src/horde_model_reference/sync/legacy_text_validator.py b/src/horde_model_reference/sync/legacy_text_validator.py
+index 3e661e0..6c695ea 100644
+--- a/src/horde_model_reference/sync/legacy_text_validator.py
++++ b/src/horde_model_reference/sync/legacy_text_validator.py
+@@ -10,6 +10,8 @@ stripping incoming duplicates, validating base records, and re-generating duplic
+ 
+ from __future__ import annotations
+ 
++from typing import TypeAlias
++
+ from loguru import logger
+ from pydantic import JsonValue
+ 
+@@ -17,12 +19,12 @@ from horde_model_reference.text_backend_names import has_legacy_text_backend_pre
+ from horde_model_reference.text_model_duplicates import TextModelDuplicateManager
+ from horde_model_reference.text_model_write_processor import TextModelWriteProcessor
+ 
+-type SettingsValue = JsonValue
+-type SettingsDict = dict[str, SettingsValue]
+-type LegacyRecordValue = JsonValue
+-type LegacyRecordDict = dict[str, LegacyRecordValue]
+-type GenerationParamsDict = dict[str, int | float | str | bool | list[int]]
+-type GenerationDefaultsDict = dict[str, LegacyRecordValue]
++SettingsValue: TypeAlias = JsonValue
++SettingsDict: TypeAlias = dict[str, SettingsValue]
++LegacyRecordValue: TypeAlias = JsonValue
++LegacyRecordDict: TypeAlias = dict[str, LegacyRecordValue]
++GenerationParamsDict: TypeAlias = dict[str, int | float | str | bool | list[int]]
++GenerationDefaultsDict: TypeAlias = dict[str, LegacyRecordValue]
+ 
+ 
+ class LegacyTextValidator:
+diff --git a/src/horde_model_reference/text_model_write_processor.py b/src/horde_model_reference/text_model_write_processor.py
+index 258b6b9..397b608 100644
+--- a/src/horde_model_reference/text_model_write_processor.py
++++ b/src/horde_model_reference/text_model_write_processor.py
+@@ -17,18 +17,19 @@ import json
+ import re
+ from importlib import resources
+ from pathlib import Path
++from typing import TypeAlias
+ 
+ from loguru import logger
+ from pydantic import JsonValue
+ 
+ from horde_model_reference.text_backend_names import validate_not_backend_prefixed
+ 
+-type SettingsValue = JsonValue
+-type SettingsDict = dict[str, SettingsValue]
+-type LegacyRecordValue = JsonValue
+-type LegacyRecordDict = dict[str, JsonValue]
+-type GenerationParamsDict = dict[str, int | float | str | bool | list[int]]
+-type GenerationDefaultsDict = dict[str, LegacyRecordValue]
++SettingsValue: TypeAlias = JsonValue
++SettingsDict: TypeAlias = dict[str, SettingsValue]
++LegacyRecordValue: TypeAlias = JsonValue
++LegacyRecordDict: TypeAlias = dict[str, JsonValue]
++GenerationParamsDict: TypeAlias = dict[str, int | float | str | bool | list[int]]
++GenerationDefaultsDict: TypeAlias = dict[str, LegacyRecordValue]
+ 
+ 
+ def _load_bundled_json(filename: str) -> dict[str, LegacyRecordValue]:
+diff --git a/tests/backends/test_http_backend.py b/tests/backends/test_http_backend.py
+index 5807951..3ed02d4 100644
+--- a/tests/backends/test_http_backend.py
++++ b/tests/backends/test_http_backend.py
+@@ -1,5 +1,7 @@
+ from pathlib import Path
+-from typing import Any, cast, override
++from typing import Any, cast
++
++from typing_extensions import override
+ 
+ import httpx
+ import pytest
+diff --git a/tests/backends/test_redis_backend.py b/tests/backends/test_redis_backend.py
+index 3007e83..f5e8308 100644
+--- a/tests/backends/test_redis_backend.py
++++ b/tests/backends/test_redis_backend.py
+@@ -3,7 +3,9 @@
+ import json
+ import time
+ from pathlib import Path
+-from typing import Any, cast, override
++from typing import Any, cast
++
++from typing_extensions import override
+ from unittest.mock import Mock
+ 
+ import fakeredis
+diff --git a/tests/horde_api/test_horde_api_integration.py b/tests/horde_api/test_horde_api_integration.py
+index befe258..78cea6a 100644
+--- a/tests/horde_api/test_horde_api_integration.py
++++ b/tests/horde_api/test_horde_api_integration.py
+@@ -3,7 +3,9 @@
+ from __future__ import annotations
+ 
+ from collections.abc import Generator
+-from typing import NotRequired, TypedDict
++from typing import TypedDict
++
++from typing_extensions import NotRequired
+ from unittest.mock import patch
+ 
+ import pytest
+diff --git a/tests/test_canonical_format.py b/tests/test_canonical_format.py
+index e50fb28..85458fc 100644
+--- a/tests/test_canonical_format.py
++++ b/tests/test_canonical_format.py
+@@ -7,7 +7,9 @@ at module import time and cannot be easily changed during test runs.
+ 
+ import json
+ from pathlib import Path
+-from typing import Any, override
++from typing import Any
++
++from typing_extensions import override
+ 
+ import httpx
+ import pytest

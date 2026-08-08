@@ -14,6 +14,8 @@ fallback the launcher can swap to without touching any screen code.
 from __future__ import annotations
 
 import enum
+
+from strenum import StrEnum
 import threading
 import time
 from typing import TYPE_CHECKING
@@ -130,7 +132,7 @@ class JobQueueEntry(BaseModel):
     features: JobFeatureSummary | None = None
 
 
-class WorkLedgerStage(enum.StrEnum):
+class WorkLedgerStage(StrEnum):
     """A job's operator-facing stage in the Overview work ledger."""
 
     QUEUED = "queued"
@@ -456,7 +458,7 @@ class StatsHistoryBackfill(BaseModel):
     all_session_samples: list[StatsSample] = Field(default_factory=list)
 
 
-class DownloadPhase(enum.StrEnum):
+class DownloadPhase(StrEnum):
     """What the background download process is doing right now."""
 
     INITIALIZING = "initializing"

@@ -22,13 +22,15 @@ never gated before the download process has had its say.
 from __future__ import annotations
 
 import enum
+
+from strenum import StrEnum
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from pydantic import BaseModel
 
 
-class GatedFeature(enum.StrEnum):
+class GatedFeature(StrEnum):
     """A worker feature whose Horde offer is withheld until its models/annotators are present on disk."""
 
     CONTROLNET = "controlnet"
@@ -36,7 +38,7 @@ class GatedFeature(enum.StrEnum):
     POST_PROCESSING = "post_processing"
 
 
-class FeatureReadinessState(enum.StrEnum):
+class FeatureReadinessState(StrEnum):
     """The serving state of a gated feature, as the operator would understand it."""
 
     OFFERED = "offered"

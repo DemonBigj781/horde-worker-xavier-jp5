@@ -336,6 +336,38 @@ plus a reserve (`vram_reserve_mb`, default 2048; `ram_reserve_mb`, default 4096)
 The reserve absorbs transient spikes the steady-state estimate misses, most
 notably tiled VAE decode (the phase that produced the observed live OOM).
 
+### Unified-memory accelerators
+
+On NVIDIA Jetson systems, device VRAM and system RAM are the same physical pool.
+That changes the meaning of several otherwise useful signals:
+
+- Moving a model from CUDA to CPU does not reduce the physical footprint by
+  itself. The weights must lose all live Python and graph-cache references
+  before the shared pool can reclaim them.
+- Swap and zRAM can help ordinary CPU allocations, but they cannot satisfy an
+  NvMap allocation that the GPU must map. A large swap pool therefore does not
+  prove that a VAE intermediate can be allocated.
+- `torch.cuda.empty_cache()` releases unused allocator blocks. It does not free
+  live tensors, remove executor-cache references, or make an uncatchable kernel
+  OOM kill recoverable inside Python.
+- CUDA allocator counters describe the CUDA allocator, not every physical page
+  occupied by CPU tensors, file mappings, NvMap, and the rest of the process.
+  Admission and diagnostics must retain the system-RAM measurements above.
+
+A 1024x1024 FLUX Schnell test on a 32 GB Jetson AGX Xavier demonstrated the
+required lifetime boundaries. Conditioning completed with less than 1 GiB of
+available RAM; destroying the text encoder recovered about 5.3 GiB. Denoising
+then completed all four steps; destroying the transformer recovered about
+21.7 GiB before a 512-pixel tiled VAE decode, which completed successfully. The
+same workload in one graph had completed denoising and failed during ordinary
+VAE upsampling with `NvMapMemAllocInternalTagged ... error 12`.
+
+The practical rule is that heavy unified-memory workflows need **stage-scoped
+ownership**, not merely calls to an unload node. The execution cache must stop
+owning the text encoders before denoising and stop owning the transformer before
+decode. See [Running on Jetson AGX Xavier](../how-to/run-on-jetson-xavier.md)
+for the tested policy and evidence.
+
 When a resource does not fit, the scheduler **defers** the preload for that cycle
 and starts **reclaiming** the resource from idle resident models, overriding the
 count-based residency protection (`under_pressure`) so an idle copy is evicted

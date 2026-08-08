@@ -60,7 +60,7 @@ jobs:
             entry="${entry%$'\r'}"
             case "$entry" in ''|\#*) continue ;; esac
             for f in $entry; do
-              if [ -e "$f" ]; then cp "$f" "$stage/"; fi
+              if [ -e "$f" ]; then cp -R "$f" "$stage/"; fi
             done
           done < "$manifest"
           cp -r horde_worker_regen "$stage/"

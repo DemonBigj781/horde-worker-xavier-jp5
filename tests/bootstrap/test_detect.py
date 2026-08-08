@@ -2,9 +2,37 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from worker_bootstrap import detect
+
+
+def test_jetson_jp5_release_recognizes_only_l4t_r35(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """JetPack 5's L4T R35 marker is recognized without guessing other JetPack lines."""
+    monkeypatch.setattr(detect, "_is_windows", lambda: False)
+    release_file = tmp_path / "nv_tegra_release"
+    release_file.write_text("# R35 (release), REVISION: 6.4, GCID: 41716553\n", encoding="utf-8")
+    assert detect._jetson_jp5_release(release_file) == "R35.6.4"
+
+    release_file.write_text("# R36 (release), REVISION: 4.3, GCID: 38968081\n", encoding="utf-8")
+    assert detect._jetson_jp5_release(release_file) is None
+
+
+def test_jetson_detection_precedes_desktop_nvidia(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A Jetson is routed away from desktop CUDA extras even if NVIDIA probes also match."""
+    monkeypatch.setattr(detect, "_jetson_jp5_release", lambda: "R35.6.4")
+    monkeypatch.setattr(detect, "_nvidia_present", lambda: True)
+
+    decision = detect.describe_backend_selection()
+
+    assert decision.final_token == detect.JETSON_JP5
+    assert decision.jetson_release == "R35.6.4"
+    assert decision.to_dict()["jetson_release"] == "R35.6.4"
 
 
 @pytest.mark.parametrize(
@@ -122,6 +150,7 @@ def test_reconcile_backend_for_gpu(
 
 def test_describe_backend_selection_records_the_arch_floor(monkeypatch: pytest.MonkeyPatch) -> None:
     """A Blackwell card on an old driver yields a decision that names the ceiling, the clamp, and the reason."""
+    monkeypatch.setattr(detect, "_jetson_jp5_release", lambda: None)
     monkeypatch.setattr(detect, "_nvidia_present", lambda: True)
     monkeypatch.setattr(detect, "_nvidia_smi_path", lambda: "/usr/bin/nvidia-smi")
     monkeypatch.setattr(detect, "_nvidia_cuda_version", lambda: (12, 8))
@@ -137,6 +166,7 @@ def test_describe_backend_selection_records_the_arch_floor(monkeypatch: pytest.M
 
 def test_describe_backend_selection_reports_unreadable_cap(monkeypatch: pytest.MonkeyPatch) -> None:
     """An unreadable compute capability keeps the driver-only pick and records the skipped clamp."""
+    monkeypatch.setattr(detect, "_jetson_jp5_release", lambda: None)
     monkeypatch.setattr(detect, "_nvidia_present", lambda: True)
     monkeypatch.setattr(detect, "_nvidia_smi_path", lambda: None)
     monkeypatch.setattr(detect, "_nvidia_cuda_version", lambda: (13, 2))
@@ -148,6 +178,7 @@ def test_describe_backend_selection_reports_unreadable_cap(monkeypatch: pytest.M
 
 def test_describe_backend_selection_non_nvidia(monkeypatch: pytest.MonkeyPatch) -> None:
     """With no GPU the decision resolves to cpu and records the absence."""
+    monkeypatch.setattr(detect, "_jetson_jp5_release", lambda: None)
     monkeypatch.setattr(detect, "_nvidia_present", lambda: False)
     monkeypatch.setattr(detect, "_amd_present", lambda: False)
     decision = detect.describe_backend_selection()
@@ -182,7 +213,10 @@ def test_describe_reconcile_records_clamp_action(
     assert decision.clamp_action == expected_action
 
 
-@pytest.mark.parametrize("token", [detect.CPU, detect.ROCM, detect.ROCM_WINDOWS, detect.AMD_UNSUPPORTED])
+@pytest.mark.parametrize(
+    "token",
+    [detect.CPU, detect.ROCM, detect.ROCM_WINDOWS, detect.AMD_UNSUPPORTED, detect.JETSON_JP5],
+)
 def test_reconcile_backend_leaves_non_cuda_tokens_untouched(
     monkeypatch: pytest.MonkeyPatch,
     token: str,
@@ -220,6 +254,7 @@ def test_detect_backend(
     expected: str,
 ) -> None:
     """detect_backend maps hardware presence + CUDA version + GPU arch onto the right build token."""
+    monkeypatch.setattr(detect, "_jetson_jp5_release", lambda: None)
     monkeypatch.setattr(detect, "_nvidia_present", lambda: nvidia)
     monkeypatch.setattr(detect, "_nvidia_cuda_version", lambda: cuda_version)
     monkeypatch.setattr(detect, "_nvidia_compute_cap", lambda: compute_cap)

@@ -16,15 +16,16 @@ from __future__ import annotations
 import enum
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Generic, Literal, TypeAlias, TypeVar
 
 from rich.table import Table
 from rich.text import Text
 
-Cell = str | Text
+Cell: TypeAlias = str | Text
 """What a column's render callable returns: a plain string or a styled Rich ``Text``."""
 
 Justify = Literal["left", "right", "center"]
+T = TypeVar("T")
 
 
 class DensityTier(enum.IntEnum):
@@ -53,7 +54,7 @@ _ASCENDING_OPTIONAL_TIERS: tuple[DensityTier, ...] = (
 
 
 @dataclass(frozen=True)
-class ColumnSpec[T]:
+class ColumnSpec(Generic[T]):
     """One table column: its header, its density tier, how to render a row, and its Rich add-column args.
 
     ``render`` maps a single row item to a cell; ``budget`` (defaulting to the declared/estimated width)
@@ -83,7 +84,7 @@ class ColumnSpec[T]:
 
 
 @dataclass(frozen=True)
-class ColumnLayout[T]:
+class ColumnLayout(Generic[T]):
     """The outcome of a selection: the columns to draw, and what width hid was clamped away."""
 
     columns: list[ColumnSpec[T]]
@@ -92,7 +93,7 @@ class ColumnLayout[T]:
     """The width at which the next-hidden tier would be revealed, or None when nothing is hidden."""
 
 
-def _budget[T](specs: Sequence[ColumnSpec[T]]) -> int:
+def _budget(specs: Sequence[ColumnSpec[T]]) -> int:
     """Estimate the terminal width a set of columns needs: content plus Rich's padding and borders.
 
     Rich's default cell padding adds two cells per column and the box draws a vertical rule between and
@@ -109,7 +110,7 @@ def intent_ceiling(detailed: bool) -> DensityTier:
     return DensityTier.DETAILS if detailed else DensityTier.WIDE
 
 
-def select_columns[T](
+def select_columns(
     specs: Sequence[ColumnSpec[T]],
     *,
     ceiling: DensityTier,
@@ -149,7 +150,7 @@ def select_columns[T](
     return ColumnLayout(columns=columns, hidden_count=len(hidden), needed_width=needed_width)
 
 
-def shed_hint[T](layout: ColumnLayout[T]) -> str | None:
+def shed_hint(layout: ColumnLayout[T]) -> str | None:
     """A short caption naming how many columns the width clamped away and the width to reveal them.
 
     Returns None when nothing was hidden, so a table only carries the hint when it is actually clamped.
@@ -160,7 +161,7 @@ def shed_hint[T](layout: ColumnLayout[T]) -> str | None:
     return f"+{layout.hidden_count} more {plural} at ≥{layout.needed_width} cols wide"
 
 
-def add_columns[T](table: Table, specs: Sequence[ColumnSpec[T]]) -> None:
+def add_columns(table: Table, specs: Sequence[ColumnSpec[T]]) -> None:
     """Add the selected columns to a Rich table, carrying each column's alignment and width hints."""
     for spec in specs:
         table.add_column(
@@ -173,7 +174,7 @@ def add_columns[T](table: Table, specs: Sequence[ColumnSpec[T]]) -> None:
         )
 
 
-def placeholder_row[T](specs: Sequence[ColumnSpec[T]], message_header: str, message: str) -> list[Cell]:
+def placeholder_row(specs: Sequence[ColumnSpec[T]], message_header: str, message: str) -> list[Cell]:
     """Build an empty-state row for the selected columns, placing ``message`` under ``message_header``.
 
     Falls back to the first column when the named column was shed, so the message is never lost on a

@@ -1169,8 +1169,8 @@ def ram_pressure_floor_mb(
     The floor is the *more conservative* (higher) of two readings, so each protects the regime the other
     misses: ``(100 - pause_percent)%`` of total RAM guards a large-RAM host (where a fixed MB floor would be
     a negligible sliver), and ``min_free_mb`` guards a small-RAM host (where the percentage can resolve to
-    too few megabytes to load a model's weights safely). With the defaults (90%, 1024 MB) a 32 GB host
-    degrades below ~3.2 GB free and an 8 GB host below 1 GB free. ``min_free_mb`` alone applies when total
+    too few megabytes to load a model's weights safely). With the defaults (85%, 1024 MB) a 32 GB host
+    degrades below ~4.8 GB free and an 8 GB host below 1.2 GB free. ``min_free_mb`` alone applies when total
     RAM is unknown.
     """
     if total_ram_mb is None or total_ram_mb <= 0:

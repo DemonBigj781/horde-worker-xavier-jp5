@@ -17,10 +17,12 @@ from __future__ import annotations
 
 import enum
 
+from strenum import StrEnum
+
 from pydantic import BaseModel
 
 
-class FaultKind(enum.StrEnum):
+class FaultKind(StrEnum):
     """The shapes of misbehaviour a fake process can be told to exhibit.
 
     Used to label an active fault (in diagnostics, in the faulted-result ``info`` string the

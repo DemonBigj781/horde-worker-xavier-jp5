@@ -543,6 +543,52 @@ def test_amd_unsupported_aborts(env: tuple[Path, list], monkeypatch: pytest.Monk
     assert cli.main(["detect"]) == 2
 
 
+def test_jetson_jp5_aborts_generic_sync(env: tuple[Path, list], monkeypatch: pytest.MonkeyPatch) -> None:
+    """JetPack 5 detection refuses desktop CUDA wheels before dependency sync."""
+    _, calls = env
+    monkeypatch.setattr(cli.detect, "describe_backend_selection", lambda: _decision("jetson-jp5"))
+
+    assert cli.main(["sync"]) == 2
+    assert calls == []
+
+
+def test_jetson_jp5_overrides_stale_desktop_backend(
+    env: tuple[Path, list],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A persisted desktop token cannot bypass live JetPack 5 protection."""
+    root, calls = env
+    backend.write_backend_file(root / "bin" / "backend", "cu126")
+    monkeypatch.setattr(cli.detect, "describe_backend_selection", lambda: _decision("jetson-jp5"))
+
+    assert cli.main(["sync"]) == 2
+    assert calls == []
+
+
+def test_jetson_jp5_rejects_forced_desktop_backend(
+    env: tuple[Path, list],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An explicit desktop CUDA token cannot bypass live JetPack 5 protection."""
+    _, calls = env
+    monkeypatch.setattr(cli.detect, "describe_backend_selection", lambda: _decision("jetson-jp5"))
+
+    assert cli.main(["sync", "--backend", "cu126"]) == 2
+    assert calls == []
+
+
+def test_jetson_jp5_allows_explicit_cpu_mode(
+    env: tuple[Path, list],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Jetson operator can still choose the safe CPU/alchemist-only build."""
+    _, calls = env
+    monkeypatch.setattr(cli.detect, "describe_backend_selection", lambda: _decision("jetson-jp5"))
+
+    assert cli.main(["sync", "--backend", "cpu"]) == 0
+    assert calls == [("sync", "cpu")]
+
+
 def test_env_override_beats_detection(env: tuple[Path, list], monkeypatch: pytest.MonkeyPatch) -> None:
     """HORDE_WORKER_BACKEND=cpu lets an AMD user opt into the CPU build."""
     root, _ = env

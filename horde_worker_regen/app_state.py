@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import contextlib
 import enum
+
+from strenum import StrEnum
 import hashlib
 import json
 import os
@@ -45,7 +47,7 @@ APP_STATE_DIR_NAME = ".horde_worker_regen"
 APP_STATE_FILENAME = "state.json"
 
 
-class KnownGoodSource(enum.StrEnum):
+class KnownGoodSource(StrEnum):
     """How a known-good configuration came to be trusted."""
 
     BENCHMARK = "benchmark"
@@ -54,7 +56,7 @@ class KnownGoodSource(enum.StrEnum):
     """The configuration ran a worker session for long enough without failing out."""
 
 
-class OverviewViewMode(enum.StrEnum):
+class OverviewViewMode(StrEnum):
     """How densely the Overview tab renders; cycled by the F6 view-mode toggle."""
 
     NORMAL = "normal"
@@ -65,7 +67,7 @@ class OverviewViewMode(enum.StrEnum):
     """A single compact status bar only; the rest of the dashboard is hidden."""
 
 
-class OverviewTrendWindow(enum.StrEnum):
+class OverviewTrendWindow(StrEnum):
     """The time span used by the Overview trend sparklines."""
 
     FIVE_MINUTES = "5m"
@@ -76,7 +78,7 @@ class OverviewTrendWindow(enum.StrEnum):
     ALL = "all"
 
 
-class OnboardingChoice(enum.StrEnum):
+class OnboardingChoice(StrEnum):
     """The user's response to the first-run benchmark prompt."""
 
     ACCEPTED = "accepted"
@@ -87,7 +89,7 @@ class OnboardingChoice(enum.StrEnum):
     """The user skipped for now; the prompt may appear again later."""
 
 
-class BenchmarkAvailability(enum.StrEnum):
+class BenchmarkAvailability(StrEnum):
     """Whether a usable benchmark exists for the running worker version."""
 
     NONE = "none"

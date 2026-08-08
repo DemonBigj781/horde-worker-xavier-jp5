@@ -19,7 +19,9 @@ class only tracks what has been proven and answers "what should happen to this p
 
 from __future__ import annotations
 
-from enum import StrEnum, auto
+from enum import auto
+
+from strenum import StrEnum
 
 from pydantic import BaseModel
 

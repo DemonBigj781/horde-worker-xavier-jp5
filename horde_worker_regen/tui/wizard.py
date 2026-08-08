@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import asyncio
 import enum
+
+from strenum import StrEnum
 import os
 from collections.abc import Coroutine
 from pathlib import Path
@@ -43,7 +45,7 @@ DEFAULT_DREAMER_NAME = "An Awesome Dreamer"
 REGISTER_URL = "https://aihorde.net/register"
 
 
-class WizardOutcome(enum.StrEnum):
+class WizardOutcome(StrEnum):
     """What the user chose to do once setup was saved."""
 
     BENCHMARK = "benchmark"

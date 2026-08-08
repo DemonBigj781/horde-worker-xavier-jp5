@@ -30,7 +30,8 @@ import threading
 import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING
+from typing_extensions import override
 
 if TYPE_CHECKING:
     from hordelib.model_manager.base import BaseModelManager

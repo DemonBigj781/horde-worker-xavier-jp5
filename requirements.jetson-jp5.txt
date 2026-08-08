@@ -1,0 +1,119 @@
+# JetPack 5 / Python 3.10 dependency overlay for worker v13.16.7.
+# The NVIDIA torch family and patched Horde packages are installed separately
+# with --no-deps so pip never resolves desktop CUDA wheels on Xavier.
+-c constraints.jetson-jp5.txt
+
+numpy==1.26.4
+qrcode==7.4.2
+
+# MediaPipe releases after 0.10.18 do not publish the Python 3.10 aarch64 wheel
+# used on Xavier. ONNX Runtime 1.23.2 is the newest matching wheel.
+mediapipe==0.10.18
+onnxruntime==1.23.2
+protobuf<5
+
+aiodns>=3.2.0,<4.0.0
+aiofiles>=25.1.0
+aiohttp>=3.11.13
+certifi>=2025.1.31
+horde_safety~=0.3.0
+haidra-core==0.0.5
+httpx>=0.28.1
+networkx==3.4.2
+
+python-dotenv>=1.2.1
+ruamel.yaml
+semver
+python-Levenshtein
+pydantic>=2.12.3,<3
+pydantic-settings>=2.10.1
+typing-extensions>=4.15.0
+tomli>=2.0.0
+requests>=2.32.5
+tenacity>=9.1.4
+ujson>=5.11.0
+StrEnum>=0.4.15
+loguru>=0.7.3
+babel
+textual==8.2.8
+textual-serve==1.1.3
+
+# Logfire 4.6.0 is the newest worker-compatible baseline that can use the
+# protobuf-4 OpenTelemetry stack required by MediaPipe on JetPack 5.
+logfire==4.6.0
+opentelemetry-instrumentation-aiohttp-client==0.48b0
+opentelemetry-instrumentation-httpx==0.48b0
+opentelemetry-instrumentation-requests==0.48b0
+opentelemetry-instrumentation-system-metrics==0.48b0
+
+# v13 worker-only UI/alchemy dependencies.
+vtracer==0.6.15
+blurhash==1.1.5
+imagehash==4.3.2
+
+# horde-engine 3.11.0 base dependencies. Torch, TorchVision, TorchAudio,
+# Comfy Kitchen, Triton, xFormers, and Flash Attention come from tested wheels.
+accelerate>=1.11.0
+addict>=2.4.0
+alembic==1.19.0
+av==17.1.0
+blake3==1.0.9
+comfy-aimdo==0.4.9
+comfyui-embedded-docs==0.5.3
+comfyui-frontend-package==1.45.15
+comfyui-workflow-templates==0.9.98
+distro>=1.9.0
+einops
+filelock
+ftfy
+fuzzywuzzy>=0.18.0
+GitPython>=3.1.45
+kornia>=0.7.1
+lpips
+matplotlib==3.10.9
+nvidia-ml-py>=12.0.0
+omegaconf>=2.3.0
+opencv-python==4.11.0.86
+opencv-contrib-python==4.11.0.86
+pillow>=11.1.0
+psutil
+pyyaml
+safetensors>=0.4.2
+scikit-image==0.25.2
+scipy==1.15.3
+sentencepiece
+simpleeval>=1.0.0
+spandrel>=0.4.1
+sqlalchemy>=2.0.0
+tokenizers==0.21.4
+torchdiffeq>=0.2.5
+torchsde
+tqdm
+transformers==4.50.3
+unidecode>=1.4.0
+yapf>=0.43.0
+yarl>=1.18.0
+
+# Feature extras enabled by the Xavier worker profile.
+diffusers==0.29.2
+spandrel-extra-arches>=0.2.0
+rembg==2.0.69
+fvcore
+# trimesh 4.12.2's `easy` extra hard-requires embreex, which has no aarch64
+# wheel. Install its Xavier-compatible easy dependencies explicitly instead.
+trimesh==4.12.2
+colorlog
+manifold3d==3.3.2
+charset-normalizer
+lxml
+jsonschema
+svg.path
+pycollada
+shapely
+xxhash
+rtree
+vhacdx==0.0.10
+mapbox-earcut==2.0.0
+yacs
+albumentations
+scikit-learn==1.7.2

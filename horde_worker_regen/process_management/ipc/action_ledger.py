@@ -15,6 +15,8 @@ so auditing can never itself wedge the worker.
 from __future__ import annotations
 
 import enum
+
+from strenum import StrEnum
 import json
 import os
 from collections import deque
@@ -24,7 +26,7 @@ from loguru import logger
 from pydantic import BaseModel, Field
 
 
-class LedgerEventType(enum.StrEnum):
+class LedgerEventType(StrEnum):
     """The kinds of lifecycle action/observation the worker records about its children."""
 
     PROCESS_SPAWNED = "process_spawned"

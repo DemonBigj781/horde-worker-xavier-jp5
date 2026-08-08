@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import re
 import time
-from enum import StrEnum
+from strenum import StrEnum
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field

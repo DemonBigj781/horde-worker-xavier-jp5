@@ -15,7 +15,7 @@ import statistics
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from enum import StrEnum
+from strenum import StrEnum
 from pathlib import Path
 from typing import IO, Any, cast
 

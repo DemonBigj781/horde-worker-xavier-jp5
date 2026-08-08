@@ -28,6 +28,8 @@ import collections
 import contextlib
 import dataclasses
 import enum
+
+from strenum import StrEnum
 import json
 import os
 import statistics
@@ -69,7 +71,7 @@ _PERSIST_EVERY_N_OBSERVATIONS = 10
 """Throttle disk writes: persist after this many new observations (plus an explicit save on shutdown)."""
 
 
-class ResolutionBucket(enum.StrEnum):
+class ResolutionBucket(StrEnum):
     """Coarse output-size band (by megapixels), since sampling cost scales with pixel count."""
 
     TINY = "<=0.3MP"
@@ -79,7 +81,7 @@ class ResolutionBucket(enum.StrEnum):
     HUGE = ">2.5MP"
 
 
-class StepsBucket(enum.StrEnum):
+class StepsBucket(StrEnum):
     """Coarse sampling-steps band."""
 
     VERY_LOW = "<=10"
@@ -89,7 +91,7 @@ class StepsBucket(enum.StrEnum):
     VERY_HIGH = ">60"
 
 
-class BatchBucket(enum.StrEnum):
+class BatchBucket(StrEnum):
     """Coarse batch-size (``n_iter``) band; batching lowers per-step it/s, so it is calibrated apart."""
 
     SINGLE = "1"

@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import contextlib
 import enum
+
+from strenum import StrEnum
 import io
 import multiprocessing
 import os
@@ -47,7 +49,7 @@ except Exception:
     from multiprocessing.connection import Connection  # type: ignore
 
 
-class WorkerProcessMode(enum.StrEnum):
+class WorkerProcessMode(StrEnum):
     """Which worker implementation the supervisor launches."""
 
     REAL = "real"
@@ -56,7 +58,7 @@ class WorkerProcessMode(enum.StrEnum):
     """A synthetic worker emitting believable snapshots; for TUI development, tests, and web demos."""
 
 
-class SupervisorStatus(enum.StrEnum):
+class SupervisorStatus(StrEnum):
     """The supervisor's view of the worker process lifecycle."""
 
     STARTING = "starting"

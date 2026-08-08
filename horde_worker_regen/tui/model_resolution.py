@@ -16,6 +16,8 @@ from __future__ import annotations
 import dataclasses
 import enum
 
+from strenum import StrEnum
+
 from horde_worker_regen.tui.model_catalog import MetaKind, ModelInfo, parse_meta_instruction
 
 # Baselines the worker excludes from ALL/TOP meta selections unless large models are opted in.
@@ -29,7 +31,7 @@ ALWAYS_SKIP = ("SDXL_beta::stability.ai#6901",)
 DEFAULT_WHEN_EMPTY = "top 2"
 
 
-class EffectiveStatus(enum.StrEnum):
+class EffectiveStatus(StrEnum):
     """The outcome for one candidate model in the resolved set."""
 
     ON_DISK = "on_disk"

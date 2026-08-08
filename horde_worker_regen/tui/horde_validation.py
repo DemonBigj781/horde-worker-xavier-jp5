@@ -14,11 +14,13 @@ without a live horde.
 from __future__ import annotations
 
 import enum
+
+from strenum import StrEnum
 from dataclasses import dataclass
 from typing import Any
 
 
-class AdvisoryStatus(enum.StrEnum):
+class AdvisoryStatus(StrEnum):
     """The outcome of an advisory check."""
 
     OK = "ok"

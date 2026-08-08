@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
-from typing import Self
+from typing_extensions import Self
 
 from horde_sdk.generation_parameters.alchemy.consts import KNOWN_ALCHEMY_FORMS
 from horde_sdk.worker.dispatch.ai_horde.bridge_data import CombinedHordeBridgeData

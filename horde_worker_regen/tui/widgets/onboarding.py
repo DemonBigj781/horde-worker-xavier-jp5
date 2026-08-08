@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import enum
 
+from strenum import StrEnum
+
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.containers import Vertical
@@ -19,7 +21,7 @@ from textual.widgets import Button, Static
 from horde_worker_regen.app_state import BenchmarkAvailability, OnboardingChoice
 
 
-class WorkerStartChoice(enum.StrEnum):
+class WorkerStartChoice(StrEnum):
     """The user's response to the first-run "start the worker?" prompt."""
 
     START_NOW = "start_now"

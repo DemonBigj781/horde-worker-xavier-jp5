@@ -2,8 +2,9 @@
 
 Ported from ``packaging/detect-backend.ps1`` and the ``install.sh`` detection block so a single
 standard-library implementation backs every install channel and platform. ``detect_backend`` returns a
-build token that the locked uv extras (``cu126``/``cu130``/``cu132``/``cpu``) or an ad-hoc ROCm path
-consume. For NVIDIA it selects the newest CUDA build the driver's reported max CUDA version can run
+build token that the locked uv extras (``cu126``/``cu130``/``cu132``/``cpu``), an ad-hoc ROCm path, or
+the separate JetPack compatibility installer consumes. For desktop NVIDIA it selects the newest CUDA
+build the driver's reported max CUDA version can run
 (13.2+ -> ``cu132``, 13.0/13.1 -> ``cu130``, anything older or unreadable -> the safe ``cu126``), then
 applies an architecture floor: a GPU whose compute capability exceeds what the ``cu126`` wheel carries
 kernels for (Hopper sm_90) gets at least ``cu130`` even on an older driver, because ``cu126`` has no
@@ -24,6 +25,7 @@ from pathlib import Path
 CU126 = "cu126"
 CU130 = "cu130"
 CU132 = "cu132"
+JETSON_JP5 = "jetson-jp5"
 AMD_UNSUPPORTED = "amd-unsupported"
 ROCM = "rocm"
 ROCM_WINDOWS = "rocm-windows"
@@ -34,6 +36,8 @@ CPU = "cpu"
 
 _CUDA_VERSION_RE = re.compile(r"CUDA Version:\s*(\d+)\.(\d+)")
 _COMPUTE_CAP_RE = re.compile(r"(\d+)\.(\d+)")
+_JETSON_RELEASE_RE = re.compile(r"# R(\d+) \(release\), REVISION: ([\d.]+)")
+_JETSON_RELEASE_PATH = Path("/etc/nv_tegra_release")
 # The locked wheels cover overlapping but different architecture windows (verified against PyTorch's
 # CUDA build matrix and the NVIDIA CUDA 13 release notes):
 #   cu126 (CUDA 12.6): sm_50..sm_90  (Maxwell through Hopper; no Blackwell)
@@ -117,6 +121,20 @@ def _nvidia_present() -> bool:
     if Path("/proc/driver/nvidia/version").exists() or Path("/dev/nvidia0").exists():
         return True
     return _linux_lspci_match(("NVIDIA",))
+
+
+def _jetson_jp5_release(path: Path = _JETSON_RELEASE_PATH) -> str | None:
+    """Return the L4T R35 release on JetPack 5, or None on other systems."""
+    if _is_windows():
+        return None
+    try:
+        release_text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    match = _JETSON_RELEASE_RE.search(release_text)
+    if not match or match.group(1) != "35":
+        return None
+    return f"R{match.group(1)}.{match.group(2)}"
 
 
 def _amd_present() -> bool:
@@ -315,6 +333,7 @@ class BackendDecision:
     driver_ceiling_build: str | None = None
     input_token: str | None = None
     clamp_action: str | None = None
+    jetson_release: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-serializable view, rendering version tuples as ``"major.minor"`` strings."""
@@ -334,6 +353,7 @@ class BackendDecision:
             "driver_ceiling_build": self.driver_ceiling_build,
             "input_token": self.input_token,
             "clamp_action": self.clamp_action,
+            "jetson_release": self.jetson_release,
         }
 
 
@@ -437,6 +457,18 @@ def describe_backend_selection() -> BackendDecision:
     so the install path can persist the hardware signals and the reasoning behind the pick (the breadcrumb
     a support bundle reads to diagnose a wrong-build install).
     """
+    if jetson_release := _jetson_jp5_release():
+        return BackendDecision(
+            stage="detect",
+            final_token=JETSON_JP5,
+            nvidia_present=True,
+            amd_present=False,
+            jetson_release=jetson_release,
+            reason=(
+                f"NVIDIA Jetson running JetPack 5 ({jetson_release}); use the dedicated CUDA 11.4 "
+                "aarch64 compatibility installer, not a desktop CUDA wheel"
+            ),
+        )
     if _nvidia_present():
         smi = _nvidia_smi_path()
         driver = _nvidia_cuda_version()
@@ -493,9 +525,10 @@ def detect_backend() -> str:
     """Return the torch build token for this machine.
 
     Returns:
-        ``cu132``/``cu130``/``cu126`` (NVIDIA: the newest build the driver's max CUDA version supports,
-        clamped to the GPU's valid architecture window, see :func:`_cuda_build`), ``rocm`` (AMD with a
-        ROCm runtime on Linux), ``rocm-windows`` for
+        ``jetson-jp5`` for the separate JetPack 5 compatibility path,
+        ``cu132``/``cu130``/``cu126`` (desktop NVIDIA: the newest build the driver's max CUDA version
+        supports, clamped to the GPU's valid architecture window, see :func:`_cuda_build`), ``rocm``
+        (AMD with a ROCm runtime on Linux), ``rocm-windows`` for
         supported AMD Windows Radeon/Ryzen AI devices, ``amd-unsupported`` for an AMD card with no known
         installable backend, or ``cpu``.
     """

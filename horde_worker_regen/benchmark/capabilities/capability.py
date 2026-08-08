@@ -7,14 +7,16 @@ e.g. "SD1.5 can run batch size 4" or "SDXL can run the QR-code controlnet workfl
 supervisor can hold proven/disproven sets and a probe can name its prerequisites as a tuple of
 capabilities.
 
-This module is pure: it imports only the shared :class:`~enum.StrEnum` tiers/findings and pydantic,
+This module is pure: it imports only the shared :class:`~StrEnum` tiers/findings and pydantic,
 so it is safe to import anywhere (TUI, progress, pytest collection) without dragging the harness or
 torch in.
 """
 
 from __future__ import annotations
 
-from enum import StrEnum, auto
+from enum import auto
+
+from strenum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 

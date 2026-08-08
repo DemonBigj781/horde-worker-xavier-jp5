@@ -50,3 +50,12 @@ packaging/detect-backend.ps1
 # Logs bundler for debugging
 create-logs-bundle.cmd
 create-logs-bundle.sh
+# Jetson AGX Xavier / JetPack 5 compatibility installer and pinned patch set.
+build-xformers-jetson-jp5.sh
+install-jetson-jp5.sh
+start-jetson-jp5.sh
+requirements.jetson-jp5.txt
+constraints.jetson-jp5.txt
+jetson-wheel-checksums.sha256
+jetson-patches
+packaging/jetson/repair_scikit_learn_wheel.py

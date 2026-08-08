@@ -41,6 +41,35 @@ def _print_amd_unsupported() -> None:
     )
 
 
+def _print_jetson_jp5_required() -> None:
+    """Refuse desktop CUDA wheels on JetPack 5 and point to the compatibility port."""
+    print(
+        "JetPack 5 was detected. The generic v13 dependency sync cannot install a compatible runtime: "
+        "its NVIDIA extras are desktop CUDA 12/13 wheels, while JetPack 5 requires the dedicated CUDA "
+        "11.4 aarch64 wheel set and Python 3.10 patches. No desktop wheel was installed. See "
+        "docs/how-to/run-on-jetson-xavier.md and docs/reference/xavier-v13-parity.md.",
+        file=sys.stderr,
+    )
+
+
+def _reject_uninstallable_backend(token: str) -> bool:
+    """Print backend-specific guidance and return True when generic sync must stop."""
+    if token == detect.AMD_UNSUPPORTED:
+        _print_amd_unsupported()
+        return True
+    if token == detect.JETSON_JP5:
+        _print_jetson_jp5_required()
+        return True
+    return False
+
+
+def _protect_jetson_selection(detected_token: str, resolved_token: str) -> str:
+    """Prevent stale or forced desktop GPU tokens from overriding live JetPack 5 detection."""
+    if detected_token == detect.JETSON_JP5 and resolved_token != detect.CPU:
+        return detect.JETSON_JP5
+    return resolved_token
+
+
 def _print_cpu_notice() -> None:
     """Explain that the CPU build runs in alchemist-only mode (image generation disabled)."""
     print(
@@ -329,16 +358,17 @@ def _verify_installed_torch_arch(uv: str, root: Path, token: str) -> None:
 
 def _sync(uv: str, root: Path, *, cli_flag: str | None, options: _SyncOptions) -> int:
     """Disclose, gain consent, ensure git, seed config, then run the sync (with preview) or ROCm path."""
+    detected_token = _detected_backend(root)
     token = backend_mod.resolve_backend(
         cli_flag=cli_flag,
         env_value=os.environ.get(_BACKEND_ENV),
         file_value=backend_mod.read_backend_file(paths.backend_file(root)),
         # Detect here too (not only at install/detect time): an absent bin/backend must pick the build
         # this machine can actually run rather than blindly defaulting to cu126.
-        detected=_detected_backend(root),
+        detected=detected_token,
     )
-    if token == detect.AMD_UNSUPPORTED:
-        _print_amd_unsupported()
+    token = _protect_jetson_selection(detected_token, token)
+    if _reject_uninstallable_backend(token):
         return 2
     # Belt-and-suspenders: detection can be bypassed by a stale persisted token or a forced override, so
     # cross-check whatever was resolved against the live GPU and clamp an unrunnable build before installing.
@@ -548,13 +578,14 @@ def _offer_cpu_mode(args: argparse.Namespace, token: str) -> str:
 
 def _cmd_detect(args: argparse.Namespace, root: Path, uv: str) -> int:  # noqa: ARG001  (uv unused here)
     """Detect (and optionally persist) the backend token, honouring a flag/env override."""
+    detected_token = _detected_backend(root)
     token = backend_mod.resolve_backend(
         cli_flag=args.backend,
         env_value=os.environ.get(_BACKEND_ENV),
-        detected=_detected_backend(root),
+        detected=detected_token,
     )
-    if token == detect.AMD_UNSUPPORTED:
-        _print_amd_unsupported()
+    token = _protect_jetson_selection(detected_token, token)
+    if _reject_uninstallable_backend(token):
         return 2
     token = _offer_cpu_mode(args, token)
     if token == detect.CPU:
@@ -761,13 +792,14 @@ def _cmd_apply_bundle(args: argparse.Namespace, root: Path, uv: str) -> int:  # 
 
 def _cmd_install(args: argparse.Namespace, root: Path, uv: str) -> int:
     """One-shot first run: detect + persist backend, sync, then launch the web dashboard."""
+    detected_token = _detected_backend(root)
     token = backend_mod.resolve_backend(
         cli_flag=args.backend,
         env_value=os.environ.get(_BACKEND_ENV),
-        detected=_detected_backend(root),
+        detected=detected_token,
     )
-    if token == detect.AMD_UNSUPPORTED:
-        _print_amd_unsupported()
+    token = _protect_jetson_selection(detected_token, token)
+    if _reject_uninstallable_backend(token):
         return 2
     token = _offer_cpu_mode(args, token)
     if token == detect.CPU:

@@ -1,0 +1,47 @@
+# JetPack 5 compatibility constraints for Python 3.10 and CUDA 11.4.
+#
+# Keep pip from replacing the tested NVIDIA wheels while resolving pure-Python
+# worker dependencies. Packages below the native stack are the newest versions
+# deliberately retained for Python 3.10 or NumPy 1.x compatibility.
+torch==2.1.0a0+git7bcf7da
+torchvision==0.16.0+fbb4cc5
+torchaudio==2.1.0+6ea1133
+triton==2.1.0+xavierjp5
+comfy-kitchen==0.2.26
+xformers==0.0.23+e1b36f7.d20260803
+flash-attn-legacy==0.5.0+xavierjp5
+
+numpy==1.26.4
+protobuf==4.25.9
+mediapipe==0.10.18
+onnxruntime==1.23.2
+networkx==3.4.2
+matplotlib==3.10.9
+opencv-python==4.11.0.86
+opencv-contrib-python==4.11.0.86
+opencv-python-headless==4.11.0.86
+scikit-image==0.25.2
+scipy==1.15.3
+scikit-learn==1.7.2
+transformers==4.50.3
+tokenizers==0.21.4
+diffusers==0.29.2
+rembg==2.0.69
+textual==8.2.8
+textual-serve==1.1.3
+logfire==4.6.0
+opentelemetry-api==1.27.0
+opentelemetry-sdk==1.27.0
+opentelemetry-exporter-otlp-proto-common==1.27.0
+opentelemetry-exporter-otlp-proto-http==1.27.0
+opentelemetry-proto==1.27.0
+opentelemetry-semantic-conventions==0.48b0
+opentelemetry-util-http==0.48b0
+opentelemetry-instrumentation==0.48b0
+opentelemetry-instrumentation-aiohttp-client==0.48b0
+opentelemetry-instrumentation-httpx==0.48b0
+opentelemetry-instrumentation-requests==0.48b0
+opentelemetry-instrumentation-system-metrics==0.48b0
+huggingface-hub==0.36.2
+hf-xet==1.6.0
+importlib-metadata==8.4.0

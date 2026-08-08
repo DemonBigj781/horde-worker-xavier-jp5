@@ -9,6 +9,7 @@ so a genuinely-wedged run resolves quickly instead of burning the wall clock.
 
 from __future__ import annotations
 
+import platform
 import sys
 
 import pytest
@@ -20,14 +21,19 @@ from horde_worker_regen.process_management.simulation.fault_injection import Fau
 # Spawning a fresh child re-imports the whole stack and is several times slower on Windows than on the
 # Linux CI runner. A wedge/recovery probe pays that cost once per re-spawn, so any budget sized for CI is
 # too tight locally on Windows (the recovery still succeeds, it just runs past the clock). Scale the
-# recovery-bounded budgets by this factor on Windows; CI (Linux) keeps the original, tight values so a
-# genuine regression still surfaces quickly there.
-_SPAWN_SLOWDOWN = 4.0 if sys.platform == "win32" else 1.0
+# recovery-bounded budgets by this factor on slow spawn platforms. Native aarch64 process startup on
+# JetPack 5 is also consistently slower than Linux CI, though less severely than Windows.
+if sys.platform == "win32":
+    _SPAWN_SLOWDOWN = 4.0
+elif platform.machine().lower() in {"aarch64", "arm64"}:
+    _SPAWN_SLOWDOWN = 2.0
+else:
+    _SPAWN_SLOWDOWN = 1.0
 
 # The bridge-data model enforces sane minimums (e.g. inference_step_timeout >= 15), so a wedge probe
 # cannot lean on tiny watchdog timeouts. Instead it bounds the whole run with a short timeout_seconds:
 # crash detection is immediate (is_alive), and an undetected wedge simply runs out the clock.
-_WEDGE_TIMEOUT_SECONDS = 15.0
+_WEDGE_TIMEOUT_SECONDS = 15.0 * _SPAWN_SLOWDOWN
 
 # Detecting a *hang* (as opposed to a crash, which is caught immediately via is_alive) requires
 # waiting out a full inference_step_timeout of silence. That floor is 15s (the bridge-data minimum), and
