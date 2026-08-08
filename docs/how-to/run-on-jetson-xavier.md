@@ -27,6 +27,12 @@ backend. An exact FLUX-shaped direct test with Q/K/V shape
 `(1, 4352, 24, 128)` completed with finite output; this verifies the 128-wide
 head path without making it the default.
 
+After installation, run the repeatable offline compatibility check with
+`python packaging/jetson/attention_compat_probe.py --output /path/to/attention-compat-head128.json`.
+It compares both Xavier backends against PyTorch SDPA, verifies that the
+`flash_attn` namespace belongs only to `flash-attn-legacy`, and does not start a
+worker or contact the Horde API.
+
 ## Dependency toolchain
 
 Install Rust and Cargo on the Xavier as a recommended maintenance toolchain.

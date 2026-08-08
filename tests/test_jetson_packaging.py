@@ -56,6 +56,7 @@ def test_jetson_installer_pins_v13_dependency_contract() -> None:
     assert "opentelemetry-semantic-conventions==0.48b0" in constraints
     assert "huggingface-hub==0.36.2" in constraints
     assert "importlib-metadata==8.4.0" in constraints
+    assert "flash-attn-legacy==0.5.1+xavierjp5fa2" in constraints
 
     requirement_names = _requirement_names(requirements)
     assert "torch" not in requirement_names
@@ -82,6 +83,8 @@ def test_jetson_installer_pins_v13_dependency_contract() -> None:
     assert 'metadata.version("opentelemetry-proto") == "1.27.0"' in installer
     assert 'metadata.version("protobuf") == "4.25.9"' in installer
     assert 'metadata.version("importlib-metadata") == "8.4.0"' in installer
+    assert 'metadata.version("flash-attn-legacy") == "0.5.1+xavierjp5fa2"' in installer
+    assert 'metadata.packages_distributions().get("flash_attn") == ["flash-attn-legacy"]' in installer
     assert "Rust and Cargo are recommended" in installer
     assert "Rust cargo is required" not in installer
 
@@ -125,7 +128,7 @@ def test_jetson_installer_preserves_xavier_native_wheels() -> None:
         "torchaudio-2.1.0+6ea1133-cp310-cp310-linux_aarch64.whl",
         "triton-2.1.0+xavierjp5-cp310-cp310-linux_aarch64.whl",
         "comfy_kitchen-0.2.26-py3-none-any.whl",
-        "flash_attn_legacy-0.5.0+xavierjp5-cp310-cp310-linux_aarch64.whl",
+        "flash_attn_legacy-0.5.1+xavierjp5fa2-cp310-cp310-linux_aarch64.whl",
         "xformers-0.0.23+e1b36f7.d20260803-cp310-cp310-linux_aarch64.whl",
         (
             "scikit_learn-1.7.2-1xavierjp5-cp310-cp310-"
@@ -178,6 +181,7 @@ def test_jetson_assets_are_in_release_bundle() -> None:
         "constraints.jetson-jp5.txt",
         "jetson-wheel-checksums.sha256",
         "jetson-patches",
+        "packaging/jetson/attention_compat_probe.py",
         "packaging/jetson/repair_scikit_learn_wheel.py",
     }.issubset(entries)
 

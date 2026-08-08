@@ -111,7 +111,7 @@ supervisor-requested graceful shutdown.
 
 ### P3: restore accelerator capabilities
 
-- [ ] Re-run the exact FLUX head-dimension-128 xFormers and FlashAttention
+- [x] Re-run the exact FLUX head-dimension-128 xFormers and FlashAttention
   compatibility probes.
 - [ ] Integrate staged FLUX component ownership into the normal pipeline.
 - [ ] Require 1024x1024 tiled VAE completion with measured release at both stage
@@ -119,6 +119,19 @@ supervisor-requested graceful shutdown.
 - [ ] Soak supported SDXL jobs, LoRAs, img2img, safety, and post-processing.
 - [ ] Advertise FLUX only after repeated network jobs submit without NvMap or
   allocator corruption.
+
+The head-dimension-128 compatibility gate was repeated on August 8, 2026 with
+the rebuilt `flash-attn-legacy==0.5.1+xavierjp5fa2` wheel. The offline probe used
+shape `(1, 256, 2, 128)` and three synchronized iterations per backend. xFormers
+and legacy FlashAttention both matched PyTorch SDPA with maximum absolute error
+`1.52587890625e-05`; xFormers averaged 0.776 ms and legacy FlashAttention
+averaged 1.024 ms. Available system RAM remained 19,531,488 KiB before and after
+the probe. The report SHA-256 is
+`1e6d96c3a997bef0ef65f5499fa308fe5cc5e01d28a0fbc2b7c62272e521af0e` and the
+device copy is stored at
+`/mnt/xavier-ssd/build/horde-worker-v13.16.7-jp5-attention-probe-20260808/attention-compat-head128.json`.
+The deployed v12 worker remained running, and no v13 worker or network job pop
+was started.
 
 ## Acceptance evidence
 

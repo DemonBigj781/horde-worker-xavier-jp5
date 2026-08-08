@@ -59,3 +59,4 @@ constraints.jetson-jp5.txt
 jetson-wheel-checksums.sha256
 jetson-patches
 packaging/jetson/repair_scikit_learn_wheel.py
+packaging/jetson/attention_compat_probe.py

@@ -9,7 +9,7 @@ torchaudio==2.1.0+6ea1133
 triton==2.1.0+xavierjp5
 comfy-kitchen==0.2.26
 xformers==0.0.23+e1b36f7.d20260803
-flash-attn-legacy==0.5.0+xavierjp5
+flash-attn-legacy==0.5.1+xavierjp5fa2
 
 numpy==1.26.4
 protobuf==4.25.9

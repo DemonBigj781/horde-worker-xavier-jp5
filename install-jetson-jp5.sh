@@ -33,7 +33,7 @@ torchvision_wheel=$wheel_dir/torchvision-0.16.0+fbb4cc5-cp310-cp310-linux_aarch6
 torchaudio_wheel=$wheel_dir/torchaudio-2.1.0+6ea1133-cp310-cp310-linux_aarch64.whl
 triton_wheel=$wheel_dir/triton-2.1.0+xavierjp5-cp310-cp310-linux_aarch64.whl
 comfy_kitchen_wheel=$wheel_dir/comfy_kitchen-0.2.26-py3-none-any.whl
-flash_attention_wheel=$wheel_dir/flash_attn_legacy-0.5.0+xavierjp5-cp310-cp310-linux_aarch64.whl
+flash_attention_wheel=$wheel_dir/flash_attn_legacy-0.5.1+xavierjp5fa2-cp310-cp310-linux_aarch64.whl
 scikit_learn_wheel=$wheel_dir/scikit_learn-1.7.2-1xavierjp5-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
 
 test "$(uname -m)" = aarch64 || {
@@ -229,7 +229,8 @@ assert metadata.version("horde-sdk") == "0.22.4"
 assert metadata.version("horde-model-reference") == "7.0.2"
 assert metadata.version("triton") == "2.1.0+xavierjp5"
 assert metadata.version("comfy-kitchen") == "0.2.26"
-assert metadata.version("flash-attn-legacy") == "0.5.0+xavierjp5"
+assert metadata.version("flash-attn-legacy") == "0.5.1+xavierjp5fa2"
+assert metadata.packages_distributions().get("flash_attn") == ["flash-attn-legacy"]
 assert metadata.version("haidra-core") == "0.0.5"
 assert metadata.version("textual") == "8.2.8"
 assert metadata.version("vtracer") == "0.6.15"
