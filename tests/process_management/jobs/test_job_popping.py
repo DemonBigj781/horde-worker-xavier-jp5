@@ -423,6 +423,36 @@ class TestPostProcessingBreakerSuppression:
         assert request.allow_post_processing is True
 
 
+class TestBridgeAgentIdentity:
+    """The Xavier fork must not identify its custom backend as upstream reGen."""
+
+    async def test_image_pop_uses_xavier_bridge_agent(self) -> None:
+        """Image pop requests clearly identify the Xavier-specific worker and repository."""
+        job_tracker = JobTracker()
+        await track_popped_job_async(job_tracker, make_mock_job())
+        await job_tracker.increment_jobs_completed()
+        session = Mock()
+        session.submit_request = AsyncMock(return_value=RequestErrorResponse(message="no jobs"))
+        popper = _make_popper(
+            job_tracker=job_tracker,
+            process_map=_make_process_map_with_available_processes(),
+            horde_client_session=session,
+        )
+
+        with patch(
+            "horde_worker_regen.process_management.jobs.job_popper.runtime_version",
+            return_value="13.16.7-test",
+        ):
+            await popper.api_job_pop()
+
+        request = session.submit_request.call_args.args[0]
+        assert request.bridge_agent == (
+            "AI Horde Worker Xavier JP5:13.16.7-test:"
+            "https://github.com/DemonBigj781/horde-worker-xavier-jp5"
+        )
+        assert "reGen" not in request.bridge_agent
+
+
 class TestPopAhead:
     """Tests for hunger detection and the urgent (throttle-bypassing) pop path."""
 

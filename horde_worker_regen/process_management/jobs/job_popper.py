@@ -67,6 +67,9 @@ if TYPE_CHECKING:
     from horde_worker_regen.process_management.lifecycle.shutdown_manager import ShutdownManager
     from horde_worker_regen.process_management.models.model_metadata import ModelMetadata
 
+_XAVIER_BRIDGE_AGENT_NAME = "AI Horde Worker Xavier JP5"
+_XAVIER_BRIDGE_AGENT_REPOSITORY = "https://github.com/DemonBigj781/horde-worker-xavier-jp5"
+
 # Post-inference backpressure tuning. The safety stage sits downstream of inference and (unlike the
 # pre-inference queue, bounded by queue_size) had no bound: when inference outran a slow/CPU safety
 # stage the post-inference backlog grew until jobs aged past their horde ttl and were server-aborted as
@@ -941,7 +944,10 @@ class JobPopper:
             job_pop_request = ImageGenerateJobPopRequest(
                 apikey=bridge_data.api_key,
                 name=bridge_data.dreamer_worker_name,
-                bridge_agent=f"AI Horde Worker reGen:{runtime_version()}:https://github.com/Haidra-Org/horde-worker-reGen",
+                bridge_agent=(
+                    f"{_XAVIER_BRIDGE_AGENT_NAME}:{runtime_version()}:"
+                    f"{_XAVIER_BRIDGE_AGENT_REPOSITORY}"
+                ),
                 models=list(models),
                 blacklist=bridge_data.blacklist,
                 nsfw=pop_nsfw,
