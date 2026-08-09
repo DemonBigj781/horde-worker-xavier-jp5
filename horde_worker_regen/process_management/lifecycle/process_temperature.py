@@ -14,7 +14,7 @@ line and the TUI both classify from the same source of truth.
 
 from __future__ import annotations
 
-from strenum import StrEnum
+from horde_worker_regen.python_compat import StrEnum
 
 
 class ProcessTemperature(StrEnum):

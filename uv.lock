@@ -1305,6 +1305,7 @@ dependencies = [
     { name = "strenum" },
     { name = "textual" },
     { name = "textual-serve" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
     { name = "typing-extensions" },
     { name = "vtracer" },
 ]
@@ -1400,6 +1401,7 @@ requires-dist = [
     { name = "strenum" },
     { name = "textual", specifier = ">=8.2.7" },
     { name = "textual-serve", specifier = ">=1.1.1" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0.0" },
     { name = "torch", marker = "extra == 'cpu'", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "horde-worker-regen", extra = "cpu" } },
     { name = "torch", marker = "extra == 'cu126'", index = "https://download.pytorch.org/whl/cu126", conflict = { package = "horde-worker-regen", extra = "cu126" } },
     { name = "torch", marker = "extra == 'cu130'", index = "https://download.pytorch.org/whl/cu130", conflict = { package = "horde-worker-regen", extra = "cu130" } },

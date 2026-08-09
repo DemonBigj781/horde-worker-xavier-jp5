@@ -5,16 +5,24 @@ This is the main integration repository for running Horde Worker v13 on NVIDIA J
 ## Current state
 
 - The Xavier dependency environment installs and passes `pip check`.
-- A focused physical-device process-management suite has passed 544 tests.
+- The exact upstream `v13.16.7` runtime surface is frozen across 242 Python
+  files and checked for missing modules, definitions, or signature drift.
+- The physical Xavier collects all 3,049 tests under Python 3.10. The complete
+  offline non-GPU gate passes 3,013 tests with 12 existing skips; the remaining
+  24 tests are real-GPU capability checks reserved for the operator-controlled
+  image trial.
 - The tested xFormers and legacy Flash Attention paths agree numerically in the compatibility probe.
 - The Python 3.10 compatibility port is source tracked.
 - Full network-connected v13 production operation has not been proven.
-- FLUX and large SDXL jobs still require end-to-end component-lifetime validation through the normal worker path.
-- The controlled-release FLUX probe is a standalone diagnostic, not a runtime handler. It remains outside the worker until an operator-run v13 image generates, passes Horde safety, and submits successfully.
+- FLUX remains source-present for upstream parity but is excluded from the v13
+  deployment path. It will be reconsidered in a later worker version after the
+  newer memory-accounting work.
+- The controlled-release FLUX probe is a standalone diagnostic, not a runtime
+  handler. The alternative lifecycle handler remains outside the worker.
 
 ## Safety boundary
 
-This port does not bypass the Horde safety process or replace the bridge protocol. Image pop requests identify this fork as `AI Horde Worker Xavier JP5` and point to this repository. Model loading, inference, safety inspection, and submission must remain compatible with the established worker contract. Automated development checks must not launch a production worker or submit network jobs; the operator performs physical end-to-end runs manually.
+This port does not bypass the Horde safety process or replace the bridge protocol. Image pop requests identify this fork as `AI Horde Worker Xavier JP5` and point to this repository. Model loading, inference, safety inspection, and submission must remain compatible with the established worker contract. Automated development checks must not launch a production worker or submit network jobs; the operator performs physical end-to-end runs manually. The existing trial checkout remains frozen at its pre-parity commit and is not authorized for launch until it is rebuilt from the completed parity branch.
 
 ## Release gates
 

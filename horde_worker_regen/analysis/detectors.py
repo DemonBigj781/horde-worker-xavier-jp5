@@ -14,12 +14,11 @@ findings rather than aborting the report.
 
 from __future__ import annotations
 
-import enum
-
-from strenum import StrEnum
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+
+from horde_worker_regen.python_compat import StrEnum
 
 from .correlate import SessionContext, find_child_crash
 from .governor_signatures import GOVERNOR_ENTER_RE, GOVERNOR_EXIT_RE, GOVERNOR_LABELS

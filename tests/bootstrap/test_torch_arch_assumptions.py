@@ -53,6 +53,11 @@ def test_installed_wheel_matches_detect_table(installed_arch: tuple[list[str], l
     highest = max(caps)
     lowest = min(caps)
 
+    if detect._jetson_jp5_release():
+        assert cuda_major == 11, f"the JetPack 5 wheel must use CUDA 11.x, got CUDA {torch.version.cuda}"
+        assert caps == [(7, 2)], f"the Xavier wheel must target only sm_72, got {arch_list}"
+        return
+
     if cuda_major <= 12:
         # The cu126 floor rule ("Blackwell+ has no kernels here, lift to cu130") rests on this ceiling.
         assert highest == detect._CU126_MAX_COMPUTE_CAP, (

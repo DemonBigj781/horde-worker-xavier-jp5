@@ -45,6 +45,7 @@ def env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> tuple[Path, list[tup
     )
 
     calls: list[tuple[str, object]] = []
+    monkeypatch.setattr(cli.runner, "uv_sync_dry_run", lambda uv, extra, **kw: (0, ""))
     monkeypatch.setattr(cli.runner, "uv_sync", lambda uv, extra, **kw: calls.append(("sync", extra)) or 0)
     monkeypatch.setattr(cli.runner, "uv_run", lambda uv, command, **kw: calls.append(("run", command)) or 0)
     # Pruning runs after every successful sync; fake it so tests never shell out and `calls` stays clean.

@@ -297,6 +297,7 @@ def test_windows_amd_rocm_backend_unknown_card_is_not_guessed(monkeypatch: pytes
 
 def test_detect_backend_uses_windows_amd_rocm_profile(monkeypatch: pytest.MonkeyPatch) -> None:
     """An AMD Windows profile returned by the matcher wins over the generic unsupported path."""
+    monkeypatch.setattr(detect, "_jetson_jp5_release", lambda: None)
     monkeypatch.setattr(detect, "_nvidia_present", lambda: False)
     monkeypatch.setattr(detect, "_amd_present", lambda: True)
     monkeypatch.setattr(detect, "_windows_amd_rocm_backend", lambda: detect.ROCM_WINDOWS)

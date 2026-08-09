@@ -12,14 +12,13 @@ intentionally omitted: showing controls that do nothing would mislead, not help.
 from __future__ import annotations
 
 import dataclasses
-import enum
-
-from strenum import StrEnum
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 from ruamel.yaml import YAML
+
+from horde_worker_regen.python_compat import StrEnum
 
 DEFAULT_CONFIG_PATH = Path("bridgeData.yaml")
 

@@ -23,13 +23,12 @@ bootstrap also honours, takes precedence so a one-off override needs no file edi
 
 from __future__ import annotations
 
-import enum
-
-from strenum import StrEnum
 import os
 from pathlib import Path
 
 from loguru import logger
+
+from horde_worker_regen.python_compat import StrEnum
 
 _BACKEND_ENV = "HORDE_WORKER_BACKEND"
 _CPU_TOKEN = "cpu"

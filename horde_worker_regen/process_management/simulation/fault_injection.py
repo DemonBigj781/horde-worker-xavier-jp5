@@ -15,11 +15,9 @@ replaced, no semaphore is orphaned, the worker keeps running).
 
 from __future__ import annotations
 
-import enum
-
-from strenum import StrEnum
-
 from pydantic import BaseModel
+
+from horde_worker_regen.python_compat import StrEnum
 
 
 class FaultKind(StrEnum):

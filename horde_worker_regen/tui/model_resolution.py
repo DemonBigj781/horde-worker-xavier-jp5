@@ -14,10 +14,8 @@ caller supplies the catalog (loaded off-thread) and, for ``top N`` / ``bottom N`
 from __future__ import annotations
 
 import dataclasses
-import enum
 
-from strenum import StrEnum
-
+from horde_worker_regen.python_compat import StrEnum
 from horde_worker_regen.tui.model_catalog import MetaKind, ModelInfo, parse_meta_instruction
 
 # Baselines the worker excludes from ALL/TOP meta selections unless large models are opted in.

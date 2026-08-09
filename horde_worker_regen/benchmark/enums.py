@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from enum import auto
 
-from strenum import StrEnum
+from horde_worker_regen.python_compat import StrEnum
 
 
 class BenchTier(StrEnum):

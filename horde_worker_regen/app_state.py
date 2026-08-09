@@ -20,9 +20,6 @@ uses a local import.
 from __future__ import annotations
 
 import contextlib
-import enum
-
-from strenum import StrEnum
 import hashlib
 import json
 import os
@@ -34,6 +31,8 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 from pydantic import BaseModel, Field
+
+from horde_worker_regen.python_compat import StrEnum
 
 if TYPE_CHECKING:
     from horde_worker_regen.benchmark.capabilities.result import CapabilityReport

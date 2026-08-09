@@ -23,9 +23,9 @@ from horde_sdk.generation_parameters.alchemy.consts import (
     is_strip_background_form,
     is_upscaler_form,
 )
-from strenum import StrEnum
 
 from horde_worker_regen.process_management.lifecycle.horde_process import WorkerCapability
+from horde_worker_regen.python_compat import StrEnum
 
 
 class WorkloadKind(StrEnum):

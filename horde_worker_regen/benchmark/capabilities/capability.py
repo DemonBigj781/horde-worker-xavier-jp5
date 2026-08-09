@@ -16,11 +16,10 @@ from __future__ import annotations
 
 from enum import auto
 
-from strenum import StrEnum
-
 from pydantic import BaseModel, ConfigDict
 
 from horde_worker_regen.benchmark.enums import BenchTier
+from horde_worker_regen.python_compat import StrEnum
 
 
 class CapabilityKind(StrEnum):

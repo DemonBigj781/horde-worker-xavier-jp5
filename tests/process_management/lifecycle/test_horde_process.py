@@ -8,11 +8,12 @@ import queue
 import sys
 import time
 from types import ModuleType, SimpleNamespace
-from typing import Any, cast, override
+from typing import Any, cast
 from unittest.mock import Mock
 
 import pytest
 from horde_sdk.ai_horde_api.apimodels import LorasPayloadEntry
+from typing_extensions import override
 
 from horde_worker_regen.process_management.ipc.messages import (
     HordeControlFlag,

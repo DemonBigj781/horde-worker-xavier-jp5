@@ -13,11 +13,10 @@ without a live horde.
 
 from __future__ import annotations
 
-import enum
-
-from strenum import StrEnum
 from dataclasses import dataclass
 from typing import Any
+
+from horde_worker_regen.python_compat import StrEnum
 
 
 class AdvisoryStatus(StrEnum):

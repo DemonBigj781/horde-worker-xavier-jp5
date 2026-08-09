@@ -8,10 +8,6 @@ chosen [`OnboardingChoice`][horde_worker_regen.app_state.OnboardingChoice]; the 
 
 from __future__ import annotations
 
-import enum
-
-from strenum import StrEnum
-
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.containers import Vertical
@@ -19,6 +15,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Static
 
 from horde_worker_regen.app_state import BenchmarkAvailability, OnboardingChoice
+from horde_worker_regen.python_compat import StrEnum
 
 
 class WorkerStartChoice(StrEnum):

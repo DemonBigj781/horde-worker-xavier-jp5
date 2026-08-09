@@ -21,13 +21,12 @@ never gated before the download process has had its say.
 
 from __future__ import annotations
 
-import enum
-
-from strenum import StrEnum
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from pydantic import BaseModel
+
+from horde_worker_regen.python_compat import StrEnum
 
 
 class GatedFeature(StrEnum):

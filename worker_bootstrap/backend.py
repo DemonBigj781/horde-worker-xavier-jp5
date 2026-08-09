@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import importlib
 import re
-import tomllib
 from collections.abc import Callable
 from pathlib import Path
+
+try:
+    tomllib = importlib.import_module("tomllib")
+except ModuleNotFoundError:  # Python 3.10 compatibility for the Xavier JP5 port.
+    tomllib = importlib.import_module("tomli")
 
 _CPU_TOKEN = "cpu"
 

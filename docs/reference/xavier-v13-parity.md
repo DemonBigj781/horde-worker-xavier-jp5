@@ -14,6 +14,29 @@ because its Python code imports on a desktop machine.
 | Parity target | `v13.16.7` (`53ee398b`) | Final v13 release before v14 |
 | Audited dev tree | `v17.10.0` (`2b04c0c`) | Not the first port target |
 
+## Parity gates
+
+Feature parity is split into independently evidenced gates so an importable
+port is not mistaken for a deployable worker:
+
+1. **Source surface:** complete. The checked-in manifest freezes all 242 runtime
+   Python files from upstream `v13.16.7` (`53ee398b`) and rejects missing files,
+   definitions, or function/method signature drift outside the audited Xavier
+   additions.
+2. **Offline behavior:** complete. All 3,049 tests collect under Python 3.10 on
+   the physical Xavier. The full non-GPU run passes 3,013 tests with 12 existing
+   skips and 24 real-GPU tests deselected.
+3. **Physical image features:** pending. The 24 real-GPU capability tests and
+   representative SD15/SDXL, LoRA, img2img, ControlNet, safety, and
+   post-processing work remain operator-controlled.
+4. **Horde submission and cutover:** pending. No v13 worker may accept network
+   jobs or replace the preserved v12 deployment until generation, safety, and
+   submission evidence is recorded.
+
+FLUX source support is retained because it is part of upstream v13, but FLUX is
+not part of the Xavier v13 deployment or acceptance path. Its runtime memory
+work is deferred to a later worker version.
+
 The v12.0.0 to v13.0.0 transition changes 698 files with roughly 85,000
 insertions and 10,000 deletions. The remainder of the v13 line adds another 419
 changed files. Porting individual old filenames is therefore the wrong model:
@@ -51,8 +74,8 @@ models, workers, and simulation packages.
   old logic.
 - **FLUX decode:** The standalone controlled-release probe demonstrates one
   lower-retention execution shape, but it is not part of the worker runtime.
-  Before advertising FLUX, the normal v13 worker path must generate an image,
-  pass Horde safety, and submit it successfully under operator control.
+  Preserve upstream source support while keeping FLUX disabled for v13. Revisit
+  it only in a later worker version after improved memory accounting is ported.
 
 ## Port sequence
 
@@ -125,20 +148,33 @@ large models and skips `Flux.1-Schnell fp8 (Compact)`. The v12 worker remained
 running and no v13 worker was launched. The test log is stored at
 `/mnt/xavier-ssd/build/logs/horde-worker-v13.16.7-xavier-jp5-candidate-tests-20260808.log`.
 
+The broader source and offline feature-parity gate completed on August 9, 2026.
+The final Python 3.10 collection found 3,049 tests with no collection errors.
+The full non-GPU suite passed 3,013 tests, retained 12 existing skips, and
+deselected 24 real-GPU tests in 37 minutes 17 seconds. The run is stored at
+`/mnt/xavier-ssd/build/horde-worker-v13.16.7-jp5-tests-20260808/v13-full-nongpu-parity-r3-20260808.log`
+with SHA-256
+`be3114b742711182cdb4b9899327171afe6294b10552a5472fccf4b25d3e0bd6`.
+The collection log SHA-256 is
+`71d4e449b6da7be8fd71435543bbce12e725fffd45c3c76a30c31654600fcc3e`.
+
+This gate also found and fixed Python 3.10 semantic differences that ordinary
+syntax conversion missed: stdlib `StrEnum.auto()` lowercase values, TOML parser
+dependency locking, `typing.override`, and multiprocessing context markers.
+The trial checkout remains intentionally frozen at commit `224a4dd2`; it must be
+rebuilt from the final parity branch before operator testing and must not be
+started in its current form.
+
 ### P3: restore accelerator capabilities
 
 - [x] Re-run the exact FLUX head-dimension-128 xFormers and FlashAttention
   compatibility probes.
 - [ ] Complete an operator-controlled v13 image trial through generation,
   Horde safety, and submission before changing lifecycle behavior.
-- [ ] After the baseline trial, measure the normal worker's selective
-  load/unload behavior and decide whether an alternative lifecycle handler is
-  necessary. Keep that handler outside the runtime until then.
-- [ ] Require 1024x1024 tiled VAE completion with measured release at both stage
-  boundaries.
 - [ ] Soak supported SDXL jobs, LoRAs, img2img, safety, and post-processing.
-- [ ] Advertise FLUX only after repeated network jobs submit without NvMap or
-  allocator corruption.
+- [x] Keep FLUX and the alternative lifecycle handler outside the v13
+  deployment path; defer their runtime evaluation to a later worker version
+  with improved memory accounting.
 
 The head-dimension-128 compatibility gate was repeated on August 8, 2026 with
 the rebuilt `flash-attn-legacy==0.5.1+xavierjp5fa2` wheel. The offline probe used

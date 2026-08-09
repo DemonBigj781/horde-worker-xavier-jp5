@@ -15,10 +15,10 @@ import statistics
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from strenum import StrEnum
 from pathlib import Path
 from typing import IO, Any, cast
 
+from horde_worker_regen.python_compat import StrEnum
 from horde_worker_regen.stats_operations import default_stats_dir
 
 _STATS_SESSION_RE = re.compile(r"^stats-v(?P<version>.+)-(?P<stamp>\d{8}-\d{6})-(?P<index>\d+)\.jsonl(?:\.gz)?$")

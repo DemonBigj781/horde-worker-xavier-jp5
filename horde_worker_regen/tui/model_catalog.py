@@ -10,11 +10,10 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
-import enum
-
-from strenum import StrEnum
 import re
 from typing import TYPE_CHECKING
+
+from horde_worker_regen.python_compat import StrEnum
 
 if TYPE_CHECKING:
     from collections.abc import Mapping

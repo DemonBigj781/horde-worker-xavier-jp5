@@ -16,9 +16,6 @@ a power user can configure by hand instead.
 from __future__ import annotations
 
 import asyncio
-import enum
-
-from strenum import StrEnum
 import os
 from collections.abc import Coroutine
 from pathlib import Path
@@ -31,6 +28,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Static
 
+from horde_worker_regen.python_compat import StrEnum
 from horde_worker_regen.tui.config_form import DEFAULT_CONFIG_PATH, load_config, save_config
 from horde_worker_regen.tui.horde_validation import AdvisoryStatus, check_worker_name_available, verify_api_key
 from horde_worker_regen.tui.model_catalog import MetaKind, build_meta_instruction, is_meta_instruction

@@ -14,9 +14,6 @@ so auditing can never itself wedge the worker.
 
 from __future__ import annotations
 
-import enum
-
-from strenum import StrEnum
 import json
 import os
 from collections import deque
@@ -24,6 +21,8 @@ from pathlib import Path
 
 from loguru import logger
 from pydantic import BaseModel, Field
+
+from horde_worker_regen.python_compat import StrEnum
 
 
 class LedgerEventType(StrEnum):

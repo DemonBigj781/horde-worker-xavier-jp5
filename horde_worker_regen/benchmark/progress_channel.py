@@ -14,9 +14,6 @@ keeping on disk. Events are deliberately lean and JSON-round-trippable.
 from __future__ import annotations
 
 import abc
-import enum
-
-from strenum import StrEnum
 import json
 import time
 from pathlib import Path
@@ -26,6 +23,7 @@ from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
 
 from horde_worker_regen.process_management.resources.duty_cycle import format_phase_gaps, phase_breakdown
+from horde_worker_regen.python_compat import StrEnum
 
 if TYPE_CHECKING:
     from horde_worker_regen.process_management.resources.run_metrics import RunMetricsSnapshot

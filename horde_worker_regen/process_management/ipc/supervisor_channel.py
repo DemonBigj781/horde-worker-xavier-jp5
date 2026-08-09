@@ -14,8 +14,6 @@ fallback the launcher can swap to without touching any screen code.
 from __future__ import annotations
 
 import enum
-
-from strenum import StrEnum
 import threading
 import time
 from typing import TYPE_CHECKING
@@ -23,6 +21,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 
 from horde_worker_regen.process_management.models.feature_readiness import FeatureReadiness
+from horde_worker_regen.python_compat import StrEnum
 
 if TYPE_CHECKING:
     from multiprocessing.connection import Connection

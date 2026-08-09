@@ -12,12 +12,11 @@ the recovery story off of.
 
 from __future__ import annotations
 
-import enum
-
-from strenum import StrEnum
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
+
+from horde_worker_regen.python_compat import StrEnum
 
 from .duty_log_report import (
     _EPOCH_BOUNDARY_FALLBACK_RE,

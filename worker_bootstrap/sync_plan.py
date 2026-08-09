@@ -21,8 +21,21 @@ import re
 import shutil
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import Enum
 from pathlib import Path
+
+try:
+    from enum import StrEnum
+except ImportError:  # Python 3.10 compatibility for the Xavier JP5 port.
+    class StrEnum(str, Enum):
+        """Minimal stdlib-only backport matching the behavior used by this module."""
+
+        @staticmethod
+        def _generate_next_value_(name: str, start: int, count: int, last_values: list[object]) -> str:
+            return name.lower()
+
+        def __str__(self) -> str:
+            return self.value
 
 __all__ = [
     "ChangeKind",

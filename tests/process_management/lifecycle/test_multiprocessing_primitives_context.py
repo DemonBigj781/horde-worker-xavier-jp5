@@ -17,10 +17,29 @@ from __future__ import annotations
 
 import multiprocessing
 import sys
+from typing import Protocol
 
 import pytest
 
 from horde_worker_regen.process_management.process_manager import CardConcurrency, MultiprocessingPrimitives
+
+
+class _SemLockState(Protocol):
+    name: str | None
+
+
+class _LockLike(Protocol):
+    _semlock: _SemLockState
+
+
+def _was_created_in_fork_context(primitive: _LockLike) -> bool:
+    """Read the context marker exposed by both Python 3.10 and newer multiprocessing locks."""
+    explicit_marker = getattr(primitive, "_is_fork_ctx", None)
+    if explicit_marker is not None:
+        return bool(explicit_marker)
+
+    semlock = primitive._semlock
+    return semlock.name is None
 
 
 def test_primitives_bind_to_passed_spawn_context() -> None:
@@ -41,12 +60,12 @@ def test_primitives_bind_to_passed_spawn_context() -> None:
 
     # A Queue's internal lock is a SemLock; _is_fork_ctx is True only when built from a fork context,
     # which is exactly what makes Process.start() under spawn raise. It must be False here.
-    assert primitives.process_message_queue._rlock._is_fork_ctx is False  # noqa: SLF001
-    assert primitives.disk_lock._is_fork_ctx is False  # noqa: SLF001
-    assert primitives.aux_model_lock._is_fork_ctx is False  # noqa: SLF001
-    assert primitives.inference_semaphores[0]._is_fork_ctx is False  # noqa: SLF001
-    assert primitives.vae_decode_semaphores[0]._is_fork_ctx is False  # noqa: SLF001
-    assert primitives.gpu_sampling_leases[0]._is_fork_ctx is False  # noqa: SLF001
+    assert _was_created_in_fork_context(primitives.process_message_queue._rlock) is False  # noqa: SLF001
+    assert _was_created_in_fork_context(primitives.disk_lock) is False
+    assert _was_created_in_fork_context(primitives.aux_model_lock) is False
+    assert _was_created_in_fork_context(primitives.inference_semaphores[0]) is False
+    assert _was_created_in_fork_context(primitives.vae_decode_semaphores[0]) is False
+    assert _was_created_in_fork_context(primitives.gpu_sampling_leases[0]) is False
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="fork start method is POSIX-only; the bug cannot occur on Windows")
@@ -59,6 +78,6 @@ def test_fork_context_queue_is_distinguishable() -> None:
     fork_ctx = multiprocessing.get_context("fork")
     fork_queue = fork_ctx.Queue()
     try:
-        assert fork_queue._rlock._is_fork_ctx is True  # noqa: SLF001
+        assert _was_created_in_fork_context(fork_queue._rlock) is True  # noqa: SLF001
     finally:
         fork_queue.close()

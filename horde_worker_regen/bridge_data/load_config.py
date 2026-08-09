@@ -15,11 +15,11 @@ from horde_sdk.worker.dispatch.ai_horde.bridge_data import MetaInstruction
 from horde_sdk.worker.model_meta import ImageModelLoadResolver
 from loguru import logger
 from ruamel.yaml import YAML
-from strenum import StrEnum
 
 from horde_worker_regen.bridge_data import AIWORKER_REGEN_PREFIX
 from horde_worker_regen.bridge_data.beta_source import beta_aware_image_records
 from horde_worker_regen.bridge_data.data_model import reGenBridgeData
+from horde_worker_regen.python_compat import StrEnum
 
 
 def _make_image_model_load_resolver(

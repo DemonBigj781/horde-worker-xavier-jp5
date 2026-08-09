@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-import enum
-
-from strenum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -17,6 +14,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Checkbox, Input, Label, Rule, Static, Switch, TabbedContent, TabPane, TextArea
 
 from horde_worker_regen.app_state import OverviewViewMode
+from horde_worker_regen.python_compat import StrEnum
 from horde_worker_regen.tui.config_form import (
     CONFIG_FIELDS,
     CONFIG_SUBTABS,

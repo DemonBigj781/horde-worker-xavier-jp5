@@ -42,6 +42,7 @@ dependencies = [
     "python-Levenshtein",
     "pydantic>=2.9.2",
     "typing_extensions",
+    "tomli>=2.0.0; python_version < '3.11'",
     "requests",
     "StrEnum",
     "loguru",

@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import re
 import time
-from strenum import StrEnum
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
@@ -25,6 +24,7 @@ from horde_worker_regen.benchmark.capabilities.capability import Capability, Cap
 from horde_worker_regen.benchmark.capabilities.timing import ProbeTiming
 from horde_worker_regen.benchmark.criteria import LevelStats
 from horde_worker_regen.benchmark.enums import BenchTier, FindingKind
+from horde_worker_regen.python_compat import StrEnum
 
 if TYPE_CHECKING:
     from horde_worker_regen.benchmark.capabilities.probe import CapabilityProbe

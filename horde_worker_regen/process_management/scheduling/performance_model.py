@@ -27,9 +27,6 @@ from __future__ import annotations
 import collections
 import contextlib
 import dataclasses
-import enum
-
-from strenum import StrEnum
 import json
 import os
 import statistics
@@ -39,6 +36,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from loguru import logger
+
+from horde_worker_regen.python_compat import StrEnum
 
 if TYPE_CHECKING:
     from horde_sdk.ai_horde_api.apimodels import ImageGenerateJobPopResponse

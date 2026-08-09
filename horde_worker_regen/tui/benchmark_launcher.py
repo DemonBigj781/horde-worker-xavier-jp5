@@ -17,9 +17,6 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
-import enum
-
-from strenum import StrEnum
 import subprocess
 import sys
 import time
@@ -44,6 +41,7 @@ from horde_worker_regen.benchmark.progress_channel import (
     SuggestionDecisionRow,
 )
 from horde_worker_regen.process_management.lifecycle.owned_process_registry import kill_process_tree
+from horde_worker_regen.python_compat import StrEnum
 from horde_worker_regen.tui.config_form import DEFAULT_CONFIG_PATH, load_config, save_config
 
 if TYPE_CHECKING:

@@ -10,13 +10,12 @@ from __future__ import annotations
 
 import dataclasses
 import enum
-
-from strenum import StrEnum
 import os
 import shutil
 from pathlib import Path
 
 from horde_worker_regen.process_management.ipc.supervisor_channel import WorkerFatalConfigError, WorkerStateSnapshot
+from horde_worker_regen.python_compat import StrEnum
 from horde_worker_regen.tui.formatters import human_bytes, human_duration
 from horde_worker_regen.tui.worker_launcher import SupervisorStatus
 

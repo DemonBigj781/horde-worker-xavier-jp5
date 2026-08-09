@@ -13,9 +13,6 @@ snapshot/command models and every screen are transport-agnostic.
 from __future__ import annotations
 
 import contextlib
-import enum
-
-from strenum import StrEnum
 import io
 import multiprocessing
 import os
@@ -39,6 +36,7 @@ from horde_worker_regen.process_management.lifecycle.owned_process_registry impo
     OwnedProcessRegistry,
     kill_process_tree,
 )
+from horde_worker_regen.python_compat import StrEnum
 from horde_worker_regen.run_worker import WorkerLaunchOptions
 from horde_worker_regen.tui.job_object import WorkerJobObject
 

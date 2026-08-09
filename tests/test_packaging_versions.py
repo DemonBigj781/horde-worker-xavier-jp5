@@ -10,8 +10,12 @@ manifests; un-skip them when re-enabling. ``packaging/sync-winget-version.py`` i
 from __future__ import annotations
 
 import re
-import tomllib
 from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
 
 import pytest
 
@@ -45,6 +49,19 @@ def test_pyproject_sources_version_from_init() -> None:
     assert "version" in pyproject["project"].get("dynamic", []), "project.version must be dynamic"
     assert "version" not in pyproject["project"], "project.version must not be statically pinned"
     assert pyproject["tool"]["hatch"]["version"]["path"] == "horde_worker_regen/__init__.py"
+
+
+def test_python310_tomli_backport_is_declared_and_locked() -> None:
+    """The Python 3.10 bootstrap parser dependency must survive locked installs."""
+    pyproject = tomllib.loads((_REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert "tomli>=2.0.0; python_version < '3.11'" in pyproject["project"]["dependencies"]
+
+    lock_text = (_REPO_ROOT / "uv.lock").read_text(encoding="utf-8")
+    assert '{ name = "tomli", marker = "python_full_version < \'3.11\'" }' in lock_text
+    assert (
+        '{ name = "tomli", marker = "python_full_version < \'3.11\'", specifier = ">=2.0.0" }'
+        in lock_text
+    )
 
 
 @pytest.mark.skip(reason=_WINGET_PAUSED)

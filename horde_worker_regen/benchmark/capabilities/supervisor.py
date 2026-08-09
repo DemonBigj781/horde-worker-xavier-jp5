@@ -21,14 +21,13 @@ from __future__ import annotations
 
 from enum import auto
 
-from strenum import StrEnum
-
 from pydantic import BaseModel
 
 from horde_worker_regen.benchmark.capabilities.capability import Capability, CapabilityVerdict
 from horde_worker_regen.benchmark.capabilities.probe import CapabilityProbe
 from horde_worker_regen.benchmark.capabilities.result import CapabilityProbeResult
 from horde_worker_regen.benchmark.enums import FindingKind
+from horde_worker_regen.python_compat import StrEnum
 
 _CATASTROPHIC_FINDING_KINDS: frozenset[FindingKind] = frozenset(
     {FindingKind.CRASH, FindingKind.OOM, FindingKind.HANG, FindingKind.PROCESS_RECOVERY},

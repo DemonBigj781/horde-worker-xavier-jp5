@@ -132,7 +132,9 @@ diagnostic and does not advertise FLUX to the Horde.
 Until the normal v13 worker completes an operator-controlled image trial that
 generates, passes Horde safety, and submits successfully:
 
-- Keep FLUX out of the production model advertisement and skip list exceptions.
+- Keep FLUX out of the v13 model advertisement, acceptance path, and skip-list
+  exceptions. Source support remains only for upstream parity; runtime work is
+  deferred to a later worker version with improved memory accounting.
 - Keep the alternative lifecycle handler outside the worker runtime.
 - Keep xFormers as the production attention backend.
 - Run FlashAttention only in direct compatibility tests.
@@ -140,6 +142,10 @@ generates, passes Horde safety, and submits successfully:
   inference children after heavy jobs.
 - Require a successful isolated staged run and a multi-job production soak
   before changing the advertised model list.
+
+The pre-parity trial checkout is not a launch candidate. Rebuild the trial from
+the final parity branch after the source and offline gates are committed, then
+repeat dependency and configuration checks before the operator starts it.
 
 The version-port status and acceptance gates are tracked in
 [Xavier v13 parity](../reference/xavier-v13-parity.md).
