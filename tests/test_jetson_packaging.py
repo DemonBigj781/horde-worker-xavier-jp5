@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 ROOT = Path(__file__).parents[1]
 
 
@@ -98,6 +97,23 @@ def test_horde_engine_patch_preserves_protobuf4_telemetry_stack() -> None:
     assert '+    "opentelemetry-instrumentation-requests==0.48b0",' in patch
     assert '+    "opentelemetry-instrumentation-aiohttp-client>=0.59b0",' not in patch
     assert '+    "opentelemetry-instrumentation-requests>=0.59b0",' not in patch
+
+
+def test_horde_engine_patch_accepts_xavier_source_built_torch_wheels() -> None:
+    """The packaged engine must accept NVIDIA's commit-tagged JetPack wheels."""
+    patch = (
+        ROOT / "jetson-patches" / "horde-engine-v3.11.0-python310-jp5.patch"
+    ).read_text(encoding="utf-8")
+    manifest = (
+        ROOT / "jetson-patches" / "horde-engine-v3.11.0-python310-jp5.sha256"
+    ).read_text(encoding="utf-8")
+
+    assert "def _backend_build_tag" in patch
+    assert 'fake_torch = types.SimpleNamespace(__version__="2.1.0a0+git7bcf7da")' in patch
+    assert 'fake_torchvision = types.SimpleNamespace(__version__="0.16.0+fbb4cc5"' in patch
+    assert "_check_cuda_version" in patch
+    assert "hordelib/utils/torch_build.py" in manifest
+    assert "tests/meta/test_torch_build.py" in manifest
 
 
 def test_scikit_learn_wheel_uses_xavier_system_openmp() -> None:

@@ -829,3 +829,130 @@ index 0000000..241f41c
 +
 +    assert os.environ["PYTORCH_CUDA_ALLOC_CONF"] == "expandable_segments:True"
 +    assert os.environ["PYTORCH_HIP_ALLOC_CONF"] == "expandable_segments:True"
+diff --git a/hordelib/utils/torch_build.py b/hordelib/utils/torch_build.py
+index e10166c..b7686e1 100644
+--- a/hordelib/utils/torch_build.py
++++ b/hordelib/utils/torch_build.py
+@@ -19,6 +19,7 @@ so it is intentionally NOT a default dependency. Two helpers here keep that arra
+ 
+ import importlib.machinery
+ import importlib.util
++import re
+ import sys
+ import types
+ 
+@@ -28,7 +29,7 @@ _AUDIO_UNAVAILABLE_MSG = (
+     "Audio support is not installed: torchaudio was deliberately left out of the default install "
+     "(it has no CUDA 13.2 wheel, and audio generation is currently unsupported). The image/video "
+     "pipeline does not need it. To enable audio, install a torchaudio build matching your torch "
+-    "CUDA version, e.g. `uv pip install torchaudio --index-url https://download.pytorch.org/whl/<build>` "
++    "CUDA version, e.g. `uv pip install torchaudio --index-url https://download.pytorch.org/whl/BUILD` "
+     "(cu126/cu130/cpu; there is no cu132 wheel). Triggered by use of `{attr}`."
+ )
+ 
+@@ -125,6 +126,14 @@ def _local_build_tag(version: str) -> str | None:
+     return version.split("+", 1)[1] if "+" in version else None
+ 
+ 
++def _backend_build_tag(version: str) -> str | None:
++    """Return a standard backend tag, excluding source-commit tags used by custom Jetson wheels."""
++    tag = _local_build_tag(version)
++    if tag and re.fullmatch(r"(?:cpu|cu\d+|rocm[\d.]+)", tag):
++        return tag
++    return None
++
++
+ def verify_torch_build_consistency() -> None:
+     """Fail fast when the installed torch trio disagrees on its CUDA/CPU build.
+ 
+@@ -143,16 +152,24 @@ def verify_torch_build_consistency() -> None:
+         # the normal import path will report; don't mask it here.
+         return
+ 
+-    torch_tag = _local_build_tag(torch.__version__)
+-    torchvision_tag = _local_build_tag(torchvision.__version__)
+-    if torch_tag != torchvision_tag:
++    torch_tag = _backend_build_tag(torch.__version__)
++    torchvision_tag = _backend_build_tag(torchvision.__version__)
++    if (torch_tag is not None or torchvision_tag is not None) and torch_tag != torchvision_tag:
+         raise RuntimeError(
+             "PyTorch and torchvision were built for different backends "
+             f"(torch={torch.__version__!r}, torchvision={torchvision.__version__!r}). They must come "
+             "from the same wheel index. Reinstall with the matching build extra, e.g. "
+-            "`uv sync --locked --extra <build>` where <build> is one of cu126/cu130/cu132/cpu.",
++            "`uv sync --locked --extra BUILD` where BUILD is one of cu126/cu130/cu132/cpu.",
+         )
+ 
++    # Source-built Jetson wheels identify their commits rather than their CUDA backend in the local
++    # version tag. torchvision's compiled extension owns the authoritative CUDA compatibility check.
++    if torch_tag is None and torchvision_tag is None:
++        extension = getattr(torchvision, "extension", None)
++        check_cuda_version = getattr(extension, "_check_cuda_version", None)
++        if callable(check_cuda_version):
++            check_cuda_version()
++
+     if _torchaudio_installed():
+         try:
+             # Importing torchaudio runs its _check_cuda_version, which validates its build against torch's.
+@@ -162,6 +179,6 @@ def verify_torch_build_consistency() -> None:
+                 "An installed torchaudio was built against a different CUDA version than PyTorch: "
+                 f"{exc} torchaudio is optional and omitted from the default install; either remove it "
+                 "or install a build matching your torch CUDA version "
+-                "(`uv pip install torchaudio --index-url https://download.pytorch.org/whl/<build>`; "
++                "(`uv pip install torchaudio --index-url https://download.pytorch.org/whl/BUILD`; "
+                 "there is no cu132 wheel).",
+             ) from exc
+diff --git a/tests/meta/test_torch_build.py b/tests/meta/test_torch_build.py
+index e680795..8bdc9c4 100644
+--- a/tests/meta/test_torch_build.py
++++ b/tests/meta/test_torch_build.py
+@@ -9,10 +9,14 @@ non-default package; torch and torchvision must always share one build.
+ from __future__ import annotations
+ 
+ import sys
+-import tomllib
+ import types
+ from pathlib import Path
+ 
++try:
++    import tomllib
++except ModuleNotFoundError:
++    import tomli as tomllib
++
+ import pytest
+ 
+ from hordelib.utils import torch_build
+@@ -146,6 +150,33 @@ def test_preflight_raises_when_tags_differ(monkeypatch: pytest.MonkeyPatch) -> N
+         torch_build.verify_torch_build_consistency()
+ 
+ 
++def test_preflight_accepts_compatible_source_build_tags(monkeypatch: pytest.MonkeyPatch) -> None:
++    """Jetson source wheels identify commits, so the compiled CUDA check decides compatibility."""
++    extension = types.SimpleNamespace(_check_cuda_version=lambda: 11040)
++    fake_torch = types.SimpleNamespace(__version__="2.1.0a0+git7bcf7da")
++    fake_torchvision = types.SimpleNamespace(__version__="0.16.0+fbb4cc5", extension=extension)
++    monkeypatch.setitem(sys.modules, "torch", fake_torch)
++    monkeypatch.setitem(sys.modules, "torchvision", fake_torchvision)
++    monkeypatch.setattr(torch_build, "_torchaudio_installed", lambda: False)
++
++    torch_build.verify_torch_build_consistency()  # must not raise
++
++
++def test_preflight_mismatch_message_is_safe_for_colored_logs(monkeypatch: pytest.MonkeyPatch) -> None:
++    """The actionable error is later passed through Loguru markup and must not contain angle-bracket tags."""
++    fake_torch = types.SimpleNamespace(__version__="2.12.0+cu132")
++    fake_torchvision = types.SimpleNamespace(__version__="0.27.0+cu130")
++    monkeypatch.setitem(sys.modules, "torch", fake_torch)
++    monkeypatch.setitem(sys.modules, "torchvision", fake_torchvision)
++    monkeypatch.setattr(torch_build, "_torchaudio_installed", lambda: False)
++
++    with pytest.raises(RuntimeError) as exc_info:
++        torch_build.verify_torch_build_consistency()
++
++    assert "<" not in str(exc_info.value)
++    assert ">" not in str(exc_info.value)
++
++
+ # --- torchaudio stub --------------------------------------------------------------------------
+ 
+ 
