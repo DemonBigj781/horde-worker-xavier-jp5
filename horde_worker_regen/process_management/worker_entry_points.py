@@ -92,6 +92,8 @@ def _spawn_timing_mark(process_id: int, kind: str, label: str) -> None:
 _CUDA_ALLOC_CONF_ENV = "PYTORCH_CUDA_ALLOC_CONF"
 _HIP_ALLOC_CONF_ENV = "PYTORCH_HIP_ALLOC_CONF"
 _EXPANDABLE_SEGMENTS_VALUE = "expandable_segments:True"
+_LEGACY_SEGMENTS_VALUE = "expandable_segments:False"
+_JETSON_RELEASE_PATH = "/etc/nv_tegra_release"
 
 
 def _enable_expandable_segments(*, amd_gpu: bool, directml: int | None) -> None:
@@ -103,13 +105,17 @@ def _enable_expandable_segments(*, amd_gpu: bool, directml: int | None) -> None:
     of the spawned child. We only touch the variable when the operator has not set their own value,
     and we skip DirectML (a different allocator entirely). The env name differs by build: CUDA builds
     read ``PYTORCH_CUDA_ALLOC_CONF``; ROCm/HIP builds read ``PYTORCH_HIP_ALLOC_CONF`` (older ROCm
-    builds still honor the CUDA name), so for AMD we set both.
+    builds still honor the CUDA name), so for AMD we set both. Jetson's CUDA 11.4 PyTorch build
+    cannot use expandable segments because that allocator path loads desktop NVML, which Jetson does
+    not provide; explicitly selecting the legacy allocator also prevents hordelib's later setdefault
+    from re-enabling the incompatible path.
     """
     if directml is not None:
         return
 
     if _CUDA_ALLOC_CONF_ENV not in os.environ:
-        os.environ[_CUDA_ALLOC_CONF_ENV] = _EXPANDABLE_SEGMENTS_VALUE
+        is_jetson_cuda = not amd_gpu and os.path.exists(_JETSON_RELEASE_PATH)
+        os.environ[_CUDA_ALLOC_CONF_ENV] = _LEGACY_SEGMENTS_VALUE if is_jetson_cuda else _EXPANDABLE_SEGMENTS_VALUE
     if amd_gpu and _HIP_ALLOC_CONF_ENV not in os.environ:
         os.environ[_HIP_ALLOC_CONF_ENV] = _EXPANDABLE_SEGMENTS_VALUE
 

@@ -26,6 +26,10 @@ _ALLOWED_XAVIER_ADDITIONS = {
         "_XAVIER_BRIDGE_AGENT_NAME",
         "_XAVIER_BRIDGE_AGENT_REPOSITORY",
     },
+    "horde_worker_regen/process_management/worker_entry_points.py": {
+        "_JETSON_RELEASE_PATH",
+        "_LEGACY_SEGMENTS_VALUE",
+    },
     "horde_worker_regen/process_management/scheduling/inference_scheduler.py": {
         "InferenceScheduler._prune_ram_drain_set",
     },
@@ -53,10 +57,7 @@ def _function_shape(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[object
         "async-function" if isinstance(node, ast.AsyncFunctionDef) else "function",
         [[arg.arg, index >= defaults_start] for index, arg in enumerate(positional)],
         args.vararg.arg if args.vararg else None,
-        [
-            [arg.arg, default is not None]
-            for arg, default in zip(args.kwonlyargs, args.kw_defaults, strict=True)
-        ],
+        [[arg.arg, default is not None] for arg, default in zip(args.kwonlyargs, args.kw_defaults, strict=True)],
         args.kwarg.arg if args.kwarg else None,
     ]
 
@@ -124,8 +125,7 @@ def test_upstream_v13_runtime_feature_surface_is_preserved() -> None:
 
     assert not missing_files, f"upstream v13 runtime files removed: {missing_files}"
     assert not mismatched_files, (
-        "upstream v13 definition/signature surface changed outside the audited Xavier additions: "
-        f"{mismatched_files}"
+        f"upstream v13 definition/signature surface changed outside the audited Xavier additions: {mismatched_files}"
     )
 
 

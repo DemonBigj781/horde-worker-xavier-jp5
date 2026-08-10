@@ -169,6 +169,8 @@ started in its current form.
 
 - [x] Re-run the exact FLUX head-dimension-128 xFormers and FlashAttention
   compatibility probes.
+- [x] Verify every ControlNet annotator can preload against the real shared
+  model cache without entering an unsupported Jetson allocator path.
 - [ ] Complete an operator-controlled v13 image trial through generation,
   Horde safety, and submission before changing lifecycle behavior.
 - [ ] Soak supported SDXL jobs, LoRAs, img2img, safety, and post-processing.
@@ -188,6 +190,24 @@ device copy is stored at
 `/mnt/xavier-ssd/build/horde-worker-v13.16.7-jp5-attention-probe-20260808/attention-compat-head128.json`.
 The deployed v12 worker remained running, and no v13 worker or network job pop
 was started.
+
+The ControlNet preload gate completed on August 10, 2026 after the first SDXL
+trial exposed a Jetson-specific PyTorch allocator failure. Ordinary CUDA tensor
+and convolution work succeeded, but `expandable_segments:True` made PyTorch
+request the desktop NVML library while moving the HED annotator to CUDA. JetPack
+5 does not provide that runtime library, so the process failed in
+`c10/cuda/driver_api.cpp` before inference. Xavier startup now defaults to
+`expandable_segments:False`; explicit operator settings remain authoritative,
+and desktop CUDA and ROCm retain their existing defaults.
+
+Eight focused worker and Horde Engine allocator regressions passed on the
+physical Xavier. A final offline run then initialized Horde Engine with the
+Torch 2.1 compatibility shims intact and preloaded all nine ControlNet
+annotators from `/mnt/xavier-ssd/horde-worker-models`. This closes the allocator
+and annotator-preload gate only. Representative image generation, Horde safety,
+submission, and sustained mixed-feature operation remain operator-controlled
+acceptance work. The patched candidate remains stopped at
+`/mnt/xavier-ssd/build/horde-worker-v13.16.7-xavier-jp5-20260809-r1`.
 
 ## Acceptance evidence
 

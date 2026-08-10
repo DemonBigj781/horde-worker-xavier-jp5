@@ -14,10 +14,10 @@ index dd2349b..1267261 100644
  from horde_model_reference.model_reference_records import ImageGenerationModelRecord
  from pydantic import BaseModel
 diff --git a/hordelib/initialisation.py b/hordelib/initialisation.py
-index 08f5be2..1783b7e 100644
+index 08f5be2..7a4e8d5 100644
 --- a/hordelib/initialisation.py
 +++ b/hordelib/initialisation.py
-@@ -10,6 +10,7 @@ from hordelib.config_path import get_comfyui_path, get_hordelib_path, set_system
+@@ -10,10 +10,33 @@ from hordelib.config_path import get_comfyui_path, get_hordelib_path, set_system
  from hordelib.consts import RELEASE_VERSION
  from hordelib.installation import EnvironmentInstaller, load_packaged_manifest
  from hordelib.utils.logger import HordeLog
@@ -25,7 +25,48 @@ index 08f5be2..1783b7e 100644
  from hordelib.utils.torch_memory import AcceleratorKind
  
  _is_initialised = False
-@@ -103,6 +104,7 @@ def initialise(
+ 
++_CUDA_ALLOC_CONF_ENV = "PYTORCH_CUDA_ALLOC_CONF"
++_HIP_ALLOC_CONF_ENV = "PYTORCH_HIP_ALLOC_CONF"
++_EXPANDABLE_SEGMENTS_VALUE = "expandable_segments:True"
++_LEGACY_SEGMENTS_VALUE = "expandable_segments:False"
++_JETSON_RELEASE_PATH = "/etc/nv_tegra_release"
++
++
++def _configure_allocator_environment(accelerator_kind: AcceleratorKind | None) -> None:
++    """Select a caching allocator mode before ComfyUI imports torch.
++
++    The JetPack 5 PyTorch build's expandable-segment path loads ``libnvidia-ml.so.1``. Jetson does
++    not ship desktop NVML, so the first sufficiently large CUDA allocation otherwise aborts inside
++    PyTorch's driver API loader. Preserve explicit operator settings and retain expandable segments
++    everywhere else, including ROCm where older builds also read the CUDA-named variable.
++    """
++    is_jetson_cuda = accelerator_kind is not AcceleratorKind.rocm and os.path.exists(_JETSON_RELEASE_PATH)
++    os.environ.setdefault(
++        _CUDA_ALLOC_CONF_ENV,
++        _LEGACY_SEGMENTS_VALUE if is_jetson_cuda else _EXPANDABLE_SEGMENTS_VALUE,
++    )
++    os.environ.setdefault(_HIP_ALLOC_CONF_ENV, _EXPANDABLE_SEGMENTS_VALUE)
++
+ 
+ def initialise(
+     # model_managers_to_load: dict[MODEL_REFERENCE_CATEGORY, bool] = ...,
+@@ -75,13 +98,7 @@ def initialise(
+             extra_comfyui_args = list(extra_comfyui_args) + pin_args
+         logger.debug("Pinned process to device index={} kind={}: env={}", device_index, accelerator_kind, pin_env)
+ 
+-    # Opt the CUDA/ROCm caching allocator into expandable segments before ComfyUI imports torch.
+-    # Fragmentation (a large "reserved but unallocated" pool) is a common cause of an out-of-memory
+-    # error even when the device still reports free memory; torch's own OOM message recommends this
+-    # setting. setdefault leaves any operator-provided value untouched. Harmless on non-CUDA backends
+-    # (the variable is ignored). On ROCm/HIP builds the equivalent variable is set too.
+-    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+-    os.environ.setdefault("PYTORCH_HIP_ALLOC_CONF", "expandable_segments:True")
++    _configure_allocator_environment(accelerator_kind)
+ 
+     # Wipe existing logs if requested
+     if clear_logs and os.path.exists("./logs"):
+@@ -103,6 +120,7 @@ def initialise(
          )
  
      # Ensure we have ComfyUI (and any manifest-pinned custom nodes)
@@ -736,3 +777,55 @@ index 0000000..50f22e0
 +
 +    expected = value * torch.rsqrt(value.square().mean(dim=-1, keepdim=True) + 1e-6)
 +    assert torch.allclose(layer(value), expected)
+diff --git a/tests/test_allocator_environment.py b/tests/test_allocator_environment.py
+new file mode 100644
+index 0000000..241f41c
+--- /dev/null
++++ b/tests/test_allocator_environment.py
+@@ -0,0 +1,46 @@
++import os
++
++import pytest
++
++from hordelib import initialisation
++from hordelib.utils.torch_memory import AcceleratorKind
++
++
++@pytest.fixture(autouse=True)
++def clear_allocator_environment(monkeypatch: pytest.MonkeyPatch) -> None:
++    monkeypatch.delenv("PYTORCH_CUDA_ALLOC_CONF", raising=False)
++    monkeypatch.delenv("PYTORCH_HIP_ALLOC_CONF", raising=False)
++
++
++def test_jetson_disables_expandable_segments(monkeypatch: pytest.MonkeyPatch) -> None:
++    monkeypatch.setattr(os.path, "exists", lambda path: path == "/etc/nv_tegra_release")
++
++    initialisation._configure_allocator_environment(AcceleratorKind.cuda)
++
++    assert os.environ["PYTORCH_CUDA_ALLOC_CONF"] == "expandable_segments:False"
++
++
++def test_jetson_preserves_operator_allocator_setting(monkeypatch: pytest.MonkeyPatch) -> None:
++    monkeypatch.setattr(os.path, "exists", lambda path: path == "/etc/nv_tegra_release")
++    monkeypatch.setenv("PYTORCH_CUDA_ALLOC_CONF", "max_split_size_mb:128")
++
++    initialisation._configure_allocator_environment(AcceleratorKind.cuda)
++
++    assert os.environ["PYTORCH_CUDA_ALLOC_CONF"] == "max_split_size_mb:128"
++
++
++def test_non_jetson_cuda_enables_expandable_segments(monkeypatch: pytest.MonkeyPatch) -> None:
++    monkeypatch.setattr(os.path, "exists", lambda _path: False)
++
++    initialisation._configure_allocator_environment(AcceleratorKind.cuda)
++
++    assert os.environ["PYTORCH_CUDA_ALLOC_CONF"] == "expandable_segments:True"
++
++
++def test_rocm_enables_expandable_segments_on_all_platforms(monkeypatch: pytest.MonkeyPatch) -> None:
++    monkeypatch.setattr(os.path, "exists", lambda _path: True)
++
++    initialisation._configure_allocator_environment(AcceleratorKind.rocm)
++
++    assert os.environ["PYTORCH_CUDA_ALLOC_CONF"] == "expandable_segments:True"
++    assert os.environ["PYTORCH_HIP_ALLOC_CONF"] == "expandable_segments:True"

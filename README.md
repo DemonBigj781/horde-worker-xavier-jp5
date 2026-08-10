@@ -12,6 +12,9 @@ This is the main integration repository for running Horde Worker v13 on NVIDIA J
   24 tests are real-GPU capability checks reserved for the operator-controlled
   image trial.
 - The tested xFormers and legacy Flash Attention paths agree numerically in the compatibility probe.
+- The Jetson allocator guard and all nine ControlNet annotator preloads pass on
+  the physical Xavier with the real shared model cache. End-to-end image,
+  safety, and submission acceptance remains pending.
 - The Python 3.10 compatibility port is source tracked.
 - Full network-connected v13 production operation has not been proven.
 - FLUX remains source-present for upstream parity but is excluded from the v13
