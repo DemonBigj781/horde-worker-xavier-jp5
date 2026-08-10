@@ -1,6 +1,8 @@
 # Horde Worker v13 - Xavier JetPack 5
 
-This is the main integration repository for running Horde Worker v13 on NVIDIA Jetson AGX Xavier. The target is JetPack 5, Ubuntu 20.04, Python 3.10, CUDA 11.4, and Xavier's shared system/GPU memory.
+This is the main integration repository for running Horde Worker v13 on NVIDIA
+Jetson AGX Xavier. The target is JetPack 5, Ubuntu 20.04, Python 3.10, CUDA
+11.4, and Xavier's shared system/GPU memory.
 
 ## Current state
 
@@ -11,10 +13,14 @@ This is the main integration repository for running Horde Worker v13 on NVIDIA J
   offline non-GPU gate passes 3,013 tests with 12 existing skips; the remaining
   24 tests are real-GPU capability checks reserved for the operator-controlled
   image trial.
-- The tested xFormers and legacy Flash Attention paths agree numerically in the compatibility probe.
+- The tested xFormers and legacy Flash Attention paths agree numerically in the
+  compatibility probe.
 - The Jetson allocator guard and all nine ControlNet annotator preloads pass on
   the physical Xavier with the real shared model cache. End-to-end image,
   safety, and submission acceptance remains pending.
+- A clean operator trial candidate built from commit `816336b1` is installed at
+  `/mnt/xavier-ssd/build/horde-worker-v13.16.7-xavier-jp5-20260810-r1` and
+  remains stopped.
 - The Python 3.10 compatibility port is source tracked.
 - Full network-connected v13 production operation has not been proven.
 - FLUX remains source-present for upstream parity but is excluded from the v13
@@ -25,11 +31,23 @@ This is the main integration repository for running Horde Worker v13 on NVIDIA J
 
 ## Safety boundary
 
-This port does not bypass the Horde safety process or replace the bridge protocol. Image pop requests identify this fork as `AI Horde Worker Xavier JP5` and point to this repository. Model loading, inference, safety inspection, and submission must remain compatible with the established worker contract. Automated development checks must not launch a production worker or submit network jobs; the operator performs physical end-to-end runs manually. The existing trial checkout remains frozen at its pre-parity commit and is not authorized for launch until it is rebuilt from the completed parity branch.
+This port does not bypass the Horde safety process or replace the bridge
+protocol. Image pop requests identify this fork as
+`AI Horde Worker Xavier JP5` and point to this repository. Model loading,
+inference, safety inspection, and submission must remain compatible with the
+established worker contract. Automated development checks must not launch a
+production worker or submit network jobs; the operator performs physical
+end-to-end runs manually. The clean August 10 candidate has passed its offline
+build and accelerator gates, but only the operator may start it for the
+remaining image, safety, submission, and soak trials.
 
 ## Release gates
 
-A v17 release requires a continuous 24-hour physical Xavier session with zero worker, child-process, supervisor, or service recovery events and no downtime. Aggregate active-work throughput must remain above 0.15 MPS/s. Brief dips for larger SDXL or FLUX jobs are acceptable only when the full-session average remains above the threshold.
+A v17 release requires a continuous 24-hour physical Xavier session with zero
+worker, child-process, supervisor, or service recovery events and no downtime.
+Aggregate active-work throughput must remain above 0.15 MPS/s. Brief dips for
+larger SDXL or FLUX jobs are acceptable only when the full-session average
+remains above the threshold.
 
 ## Start here
 
@@ -41,4 +59,6 @@ A v17 release requires a continuous 24-hour physical Xavier session with zero wo
 
 ## Upstream
 
-Forked from `tazlin/horde-worker-reGen`. General worker documentation remains available upstream; this repository is the Xavier-specific development and validation line.
+Forked from `tazlin/horde-worker-reGen`. General worker documentation remains
+available upstream; this repository is the Xavier-specific development and
+validation line.

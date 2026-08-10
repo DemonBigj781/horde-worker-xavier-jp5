@@ -143,9 +143,14 @@ generates, passes Horde safety, and submits successfully:
 - Require a successful isolated staged run and a multi-job production soak
   before changing the advertised model list.
 
-The pre-parity trial checkout is not a launch candidate. Rebuild the trial from
-the final parity branch after the source and offline gates are committed, then
-repeat dependency and configuration checks before the operator starts it.
+The pre-parity trial checkout is not a launch candidate. The rebuilt candidate
+at
+`/mnt/xavier-ssd/build/horde-worker-v13.16.7-xavier-jp5-20260810-r1`
+uses worker commit `816336b1`, a fresh dependency environment, and the
+production-derived configuration. Its dependency, configuration, focused test,
+attention, and ControlNet annotator gates passed offline on August 10, 2026.
+It remains stopped; only the operator may start the image, safety, submission,
+and soak trials.
 
 The version-port status and acceptance gates are tracked in
 [Xavier v13 parity](../reference/xavier-v13-parity.md).

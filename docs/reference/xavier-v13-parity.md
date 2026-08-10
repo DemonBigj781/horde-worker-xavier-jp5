@@ -161,9 +161,9 @@ The collection log SHA-256 is
 This gate also found and fixed Python 3.10 semantic differences that ordinary
 syntax conversion missed: stdlib `StrEnum.auto()` lowercase values, TOML parser
 dependency locking, `typing.override`, and multiprocessing context markers.
-The trial checkout remains intentionally frozen at commit `224a4dd2`; it must be
-rebuilt from the final parity branch before operator testing and must not be
-started in its current form.
+The earlier trial checkout remains intentionally frozen at commit `224a4dd2`
+as historical evidence and must not be started. Its replacement is the clean
+August 10 candidate described below.
 
 ### P3: restore accelerator capabilities
 
@@ -203,11 +203,24 @@ and desktop CUDA and ROCm retain their existing defaults.
 Eight focused worker and Horde Engine allocator regressions passed on the
 physical Xavier. A final offline run then initialized Horde Engine with the
 Torch 2.1 compatibility shims intact and preloaded all nine ControlNet
-annotators from `/mnt/xavier-ssd/horde-worker-models`. This closes the allocator
-and annotator-preload gate only. Representative image generation, Horde safety,
-submission, and sustained mixed-feature operation remain operator-controlled
-acceptance work. The patched candidate remains stopped at
-`/mnt/xavier-ssd/build/horde-worker-v13.16.7-xavier-jp5-20260809-r1`.
+annotators from `/mnt/xavier-ssd/horde-worker-models`.
+
+The clean rebuild exposed one additional packaging omission: the reproducible
+Horde Engine patch did not yet include the existing Xavier compatibility for
+NVIDIA's commit-tagged PyTorch and torchvision wheels. A regression now freezes
+that requirement, and worker commit `816336b1` carries both the source-tag and
+allocator fixes in the dependency patch. The fresh environment passes
+`pip check`, the real Torch build-consistency preflight, 6 focused Horde Engine
+tests, 89 focused worker tests, configuration and help preflight, the
+head-dimension-128 attention probe, and all nine offline annotator preloads.
+
+The stopped operator trial candidate is stored at
+`/mnt/xavier-ssd/build/horde-worker-v13.16.7-xavier-jp5-20260810-r1`.
+Its evidence manifest and SHA-256 list are `CANDIDATE-MANIFEST.txt` and
+`VALIDATION-SHA256SUMS.txt` in that directory. This closes the clean-build,
+allocator, and annotator-preload gates only. Representative image generation,
+Horde safety, submission, and sustained mixed-feature operation remain
+operator-controlled acceptance work.
 
 ## Acceptance evidence
 
